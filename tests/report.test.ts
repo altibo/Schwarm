@@ -53,7 +53,7 @@ test("moves: before/after CEI with curve-trend correction → gewirkt / eher nic
   // Move B at bar 120: curve rises by 2 points, the floor by 1 → below expectation → eher nicht.
   for (let i = 120; i < 136; i++) bars[i].mv = "bass";
   for (let i = 112; i < 200; i++) bars[i].E = 7;
-  for (let i = 120 + MOVE_AFTER[0]; i < 200; i++) ((bars[i].soll = 7), (bars[i].E = 8));
+  for (let i = 120 + MOVE_AFTER[0]; i < 200; i++) Object.assign(bars[i], { soll: 7, E: 8 });
   const r = analyze(rec(bars));
   assert.equal(r.moves.length, 2);
   const [a, b] = r.moves;
