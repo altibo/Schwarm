@@ -148,20 +148,23 @@ if os.path.exists(base + ".kick.wav"):
     KSR = plan["sampleRate"]
     kr = subprocess.run(["ffmpeg", "-v", "error", "-i", base + ".kick.wav", "-ac", "1", "-f", "s16le", "-"], capture_output=True, check=True).stdout
     k = np.abs(np.frombuffer(kr, dtype=np.int16).astype(np.float32) / 32768.0)
-    found, missing = [], 0
+    found, missing, skipped = [], 0, 0
     for t in kicks:
-        a = int(round((t - 0.003) * KSR)); b = int(round((t + 0.006) * KSR))
-        if a < 0 or b > len(k): continue
-        idx = np.nonzero(k[a:b] > 0.02)[0]
-        if not len(idx): missing += 1; continue
+        a = int(round((t - 0.003) * KSR)); b = int(round((t + 0.02) * KSR))
+        pre = k[int(round((t - 0.1) * KSR)):a] if t > 0.15 else k[:a]
+        if b > len(k): continue
+        if len(pre) and pre.max() > 0.06: skipped += 1; continue  # a ghost kick just before: its tail would mask the onset
+        w = k[a:b]
+        if w.max() < 0.05: missing += 1; continue
+        idx = np.nonzero(w > 0.3 * w.max())[0]
         found.append(((a + idx[0]) / KSR - t) * 1000)
     found = np.array(found)
     medk = float(np.median(found)); devk = np.abs(found - medk)
     # tempo from detected onsets: inter-onset intervals vs the planned grid
-    out["beatAccuracyKickStem"] = {"kicksScheduled": int(len(kicks)), "kicksFound": int(len(found)), "missing": missing,
+    out["beatAccuracyKickStem"] = {"kicksScheduled": int(len(kicks)), "kicksMeasured": int(len(found)), "skippedAfterGhostKick": skipped, "missing": missing,
         "medianOnsetOffsetMs": round(medk, 3), "p95DeviationMs": round(float(np.percentile(devk, 95)), 4), "maxDeviationMs": round(float(devk.max()), 4),
         "sampleMs": round(1000 / KSR, 4),
-        "note": "Kick-only render of the same set. Onset = first sample above -34 dBFS within -3…+6 ms of the scheduled time. Deviation in units of samples shows the scheduling is sample-accurate across tempo changes and chunk joins."}
+        "note": "Kick-only render of the same set (no rumble). Onset = first sample above 30 % of the kick's peak, searched from -3 to +20 ms around the scheduled time. The constant median offset is the master chain latency (Chromium's limiter look-ahead + the kick's attack); the deviation from it is the timing jitter."}
 
 # 6) Dramaturgy vs curve
 phrase_bars = [b for b in bars if b["section"] == "groove" and b["phraseBar"] == 0]
