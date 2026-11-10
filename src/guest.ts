@@ -291,7 +291,7 @@ const flashEl = $("flash");
 function flashFrame(t: number) {
   const reduce = reducedMotion();
   for (const f of flashes)
-    if (t >= f && t < f + 80) {
+    if (t >= f && t < f + 200) { // a late frame (jank, throttling) still flashes, up to 200 ms
       flashUntil = t + 450;
       if (core) flashLog.push({ planned: core.link.clock.toMaster(performance.timeOrigin + f), shown: core.link.clock.toMaster(performance.timeOrigin + t), reduced: reduce });
       flashes = flashes.filter((x) => x !== f);
