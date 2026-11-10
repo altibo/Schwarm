@@ -175,3 +175,62 @@ test("light moments: start with a build-up, end 8 bars after the drop, at most 4
   assert.ok(starts <= 4 && starts >= 3, `starts=${starts}`);
   assert.equal(LM_SPACING_MS, 15 * 60000);
 });
+// --- Regression (real phone, Phase 1): phone laid down → master curve stuck at a mid value ---
+function dancedThen(agg: LiveAggregator, ids: string[], bars: number) {
+  for (let b = 1; b <= bars; b++) {
+    for (const id of ids) agg.add(pkt(id, b, { e: 0.7 }), b * 1000);
+    agg.finalize(b, b * 1000);
+  }
+}
+test("0 dancers: everybody hidden/gone → E decays to 0 within a few bars (no held value), S = P = 0, readiness 0", () => {
+  const agg = new LiveAggregator();
+  dancedThen(agg, ["a", "b", "c"], 8);
+  for (const id of ["a", "b", "c"]) agg.seen(id, 8500, false); // pages hidden (phone locked)
+  for (let b = 9; b < 40; b++) {
+    const g = agg.finalize(b, b * 1000);
+    const c = toCrowd(g);
+    assert.equal(g.n, 0);
+    assert.ok(g.E <= 7 * 0.25 ** (b - 8) + 1e-9, `bar ${b}: E ${g.E}`);
+    if (b >= 12) assert.equal(g.E, 0);
+    assert.equal(c.sync, 0);
+    assert.equal(c.participation, 0);
+    assert.equal(readiness(c), 0);
+  }
+});
+test("guest stops reporting (network gone): ≤ 2 bars bridged, then decay; out of N after the presence window; E → 0", () => {
+  const agg = new LiveAggregator();
+  dancedThen(agg, ["a"], 8);
+  const Es: number[] = [];
+  const ns: number[] = [];
+  for (let b = 9; b < 20; b++) {
+    const g = agg.finalize(b, 8000 + (b - 8) * 1875);
+    Es.push(g.E);
+    ns.push(g.n);
+  }
+  assert.ok(Math.abs(Es[0] - 7) < 1e-9);
+  assert.ok(Es[1] === Es[0] || ns[1] === 0);
+  assert.ok(Es[2] <= 3.5 + 1e-9);
+  assert.equal(Es.at(-1), 0);
+  assert.equal(ns.at(-1), 0, "presence window (5 s) expired");
+  assert.ok(ns.indexOf(0) <= 3);
+});
+test("phone lies still: 'still' packets keep it connected but out of N; E 0; the light-moment freeze does not outlive N = 0", () => {
+  const agg = new LiveAggregator();
+  dancedThen(agg, ["a"], 8);
+  agg.freezeE = 7;
+  for (let b = 9; b < 14; b++) {
+    agg.add(pkt("a", b, { e: 0.003 }), b * 1000, true);
+    const g = agg.finalize(b, b * 1000);
+    assert.equal(g.n, 0);
+    assert.equal(g.frozen, false);
+    if (b >= 12) assert.equal(g.E, 0);
+  }
+  assert.equal(agg.joined, 1);
+  // Lying still but not yet 60 s (not flagged): it counts, with energy ≈ 0 – no stale value.
+  const agg2 = new LiveAggregator();
+  dancedThen(agg2, ["a"], 8);
+  agg2.add(pkt("a", 9, { e: 0.003 }), 9000);
+  const g = agg2.finalize(9, 9000);
+  assert.equal(g.n, 1);
+  assert.ok(g.E < 0.1);
+});

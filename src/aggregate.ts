@@ -71,6 +71,7 @@ export class LiveAggregator {
   /** Light moment: crowd energy is frozen (concept §3). */
   freezeE: number | null = null;
   private lastE = 0;
+  private emptyBars = 0;
   windowMs: number;
   constructor(o: PresenceOpts = {}) {
     this.windowMs = o.windowMs ?? 5000;
@@ -143,13 +144,27 @@ export class LiveAggregator {
     const medR = m ? median(a.rCount, a.rSum) : 0;
     if (n === 1 && m === 1) this.streak = a.bestR >= 0.6 ? this.streak + 1 : 0;
     else if (m > 1 || n !== 1) this.streak = 0; // one missing/late report (m = 0) only pauses the solo streak
-    if (m) this.lastE = E;
+    // No report this bar: hold the last value for at most HOLD_BARS (one lost packet), then decay
+    // it to 0 – and with nobody counting (n = 0) it decays at once. A held value must never stand
+    // in for an empty floor (bug seen on a real phone: phone laid down → curve stuck mid-level).
+    let Eout: number;
+    if (m) {
+      this.emptyBars = 0;
+      Eout = E;
+    } else {
+      this.emptyBars++;
+      Eout = n > 0 ? (this.emptyBars <= HOLD_BARS ? this.lastE : this.lastE * E_DECAY) : this.lastE * E_DECAY_EMPTY;
+      if (Eout < 0.05) Eout = 0;
+    }
+    this.lastE = Eout;
+    // The light-moment freeze only holds while someone counts.
+    const frozen = this.freezeE !== null && n > 0;
     return {
       bar,
       n,
       m,
       joined: this.joined,
-      E: this.freezeE ?? (m ? E : this.lastE),
+      E: frozen ? this.freezeE! : Eout,
       R,
       S,
       Z: m * R * R,
@@ -157,7 +172,7 @@ export class LiveAggregator {
       U: m ? a.up / m : 0,
       medR,
       streak: this.streak,
-      frozen: this.freezeE !== null,
+      frozen,
     };
   }
 }
@@ -213,6 +228,12 @@ function median(count: Float64Array, sum: Float64Array) {
   }
   return 0;
 }
+/** Bars a missing report may be bridged by the last value (only while someone still counts). */
+export const HOLD_BARS = 2;
+/** Per-bar decay of the energy once nothing comes in (half-life ≈ 1 bar). */
+export const E_DECAY = 0.5;
+/** With nobody counting the floor is empty: decay fast (7 → 0 in 4 bars ≈ 7 s). */
+export const E_DECAY_EMPTY = 0.25;
 /** Guest-side sampling above the hub's capacity: report with probability p, master rescales. */
 export const SAMPLE_TARGET = 150;
 export const samplingP = (nActive: number, target = SAMPLE_TARGET) => (nActive <= target ? 1 : target / nActive);

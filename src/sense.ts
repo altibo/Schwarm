@@ -105,14 +105,16 @@ export class MotionFeatures {
   }
   /** Pose from the gravity direction. Pocket mode is a UI state the guest chose. */
   private detectPose(pocket: boolean, rms: number, t: number): Pose {
-    if (pocket) return "pocket";
-    if (!this.g) return "hand";
+    if (!this.g) return pocket ? "pocket" : "hand";
     const gn = Math.hypot(this.g.x, this.g.y, this.g.z) || 1;
     const flat = Math.abs(this.g.z) / gn;
+    // Flat and motionless for 60 s = lying on a table, also when pocket mode is on (the guest
+    // put the phone down): it stops counting – not as tired, just not there.
     if (flat > 0.95 && rms < 0.08) {
       if (this.stillSince < 0) this.stillSince = t;
       if (t - this.stillSince >= 60000) return "table";
     } else this.stillSince = -1;
+    if (pocket) return "pocket";
     return Math.abs(this.g.y) / gn > 0.9 ? "up" : "hand";
   }
   /** Features for the bar [start, end) of the heard grid (local ms). */

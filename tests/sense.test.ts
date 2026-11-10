@@ -85,3 +85,16 @@ test("personal adaptation stays within ±30 % and only learns from clear dancing
   feed(12, BEAT, 3000); // strong and on the beat for ~90 min: adapts, capped at 1.3
   assert.ok(m.adapt > 1.2 && m.adapt <= 1.3, `adapt=${m.adapt}`);
 });
+test("phone lies still on a table: energy ≈ 0 at once; after 60 s it is 'table' (still, not counted) – also with pocket mode on, also on the fallback sensor", () => {
+  for (const o of [{ pocket: false }, { pocket: true }, { pocket: true, fallback: true }]) {
+    const short = dance(() => 0, { bars: 8, noise: 0.03, flat: true, ...o });
+    assert.ok(short.e < 0.02, `e=${short.e}`);
+    assert.equal(short.still, false);
+    const long = dance(() => 0, { bars: 40, noise: 0.03, flat: true, ...o });
+    assert.ok(long.e < 0.02);
+    assert.equal(long.still, true, JSON.stringify(o));
+    assert.equal(long.pose, "table");
+  }
+  // In a pocket while dancing, flat or not, it never becomes "table".
+  assert.equal(dance((t) => 3 * Math.cos((TAU * t) / BEAT), { bars: 40, flat: true, pocket: true }).still, false);
+});
