@@ -1,0 +1,64 @@
+SCHWARM sample credits (all CC0 1.0)
+
+FreePats Lately Bass (2024-03-21) | Yingchun Soul (Dexed) | https://github.com/freepats/lately-bass | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+FreePats Sweep Pad (2019-08-13) | roberto@zenvoid.org | https://github.com/freepats/sweep-pad | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+FreePats Synth Bass #1 (2019-07-23) | roberto@zenvoid.org (ZynAddSubFX/Yoshimi) | https://github.com/freepats/synth-bass-1 | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+FreePats Synth Brass #1 (2021-04-26) | roberto@zenvoid.org | https://github.com/freepats/synth-brass-1 | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+FreePats Synth Fifths (2020-05-19) | Elf of Happy and Love (快乐爱的小精灵), edits roberto@zenvoid.org | https://github.com/freepats/synth-fifths | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+FreePats Synth Pad Bowed (2019-07-19) | Strix SoundFont Team, adapted by roberto@zenvoid.org | https://github.com/freepats/synth-pad-bowed | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+FreePats Synth Pad Choir (2020-05-16) | Elf of Happy and Love (快乐爱的小精灵), edits roberto@zenvoid.org | https://github.com/freepats/synth-pad-choir | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/)
+Roland TR-808 Sample Set 1.0.0 (1994) | Michael Fischer (Technopolis); packaged by TidalCycles | https://github.com/tidalcycles/sounds-tr808-fischer | CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/) – LICENSE file of the repository; original README: “these samples are ABSOLUTELY FREE”
+
+Files:
+samples/drum-kick.wav  <=  tr808:bd8/BD2525.WAV
+samples/drum-kickdeep.wav  <=  tr808:bd8/BD0050.WAV
+samples/drum-snare.wav  <=  tr808:sd8/SD2550.WAV
+samples/drum-snaredark.wav  <=  tr808:sd8/SD0025.WAV
+samples/drum-clap.wav  <=  tr808:cp8/CP.WAV
+samples/drum-hat.wav  <=  tr808:ch8/CH.WAV
+samples/drum-openhat.wav  <=  tr808:oh8/OH25.WAV
+samples/drum-rim.wav  <=  tr808:rs8/RS.WAV
+samples/drum-tom.wav  <=  tr808:lt8/LT25.WAV
+samples/drum-conga.wav  <=  tr808:lc8/LC25.WAV
+samples/drum-clave.wav  <=  tr808:cl8/CL.WAV
+samples/drum-shaker.wav  <=  tr808:ma8/MA.WAV
+samples/drum-ride.wav  <=  tr808:cy8/CY2525.WAV
+samples/sub-28.wav  <=  synth-bass-1:samples/E1.flac
+samples/sub-32.wav  <=  synth-bass-1:samples/G#1.flac
+samples/sub-36.wav  <=  synth-bass-1:samples/C2.flac
+samples/sub-40.wav  <=  synth-bass-1:samples/E2.flac
+samples/fmbass-30.wav  <=  lately-bass:samples/F#1.wav
+samples/fmbass-36.wav  <=  lately-bass:samples/C2.wav
+samples/fmbass-42.wav  <=  lately-bass:samples/F#2.wav
+samples/bowed-44.wav  <=  synth-pad-bowed:samples/Ab2L.flac + samples/Ab2R.flac
+samples/bowed-48.wav  <=  synth-pad-bowed:samples/C3L.flac + samples/C3R.flac
+samples/bowed-52.wav  <=  synth-pad-bowed:samples/E3L.flac + samples/E3R.flac
+samples/bowed-56.wav  <=  synth-pad-bowed:samples/Ab3L.flac + samples/Ab3R.flac
+samples/bowed-60.wav  <=  synth-pad-bowed:samples/C4L.flac + samples/C4R.flac
+samples/bowed-64.wav  <=  synth-pad-bowed:samples/E4L.flac + samples/E4R.flac
+samples/choir-42.wav  <=  synth-pad-choir:samples/F#2.flac
+samples/choir-48.wav  <=  synth-pad-choir:samples/C3.flac
+samples/choir-54.wav  <=  synth-pad-choir:samples/F#3.flac
+samples/choir-60.wav  <=  synth-pad-choir:samples/C4.flac
+samples/choir-66.wav  <=  synth-pad-choir:samples/F#4.flac
+samples/sweep-44.wav  <=  sweep-pad:samples/G#2.flac
+samples/sweep-48.wav  <=  sweep-pad:samples/C3.flac
+samples/sweep-52.wav  <=  sweep-pad:samples/E3.flac
+samples/sweep-56.wav  <=  sweep-pad:samples/G#3.flac
+samples/sweep-60.wav  <=  sweep-pad:samples/C4.flac
+samples/sweep-64.wav  <=  sweep-pad:samples/E4.flac
+samples/brass-42.wav  <=  synth-brass-1:samples/F#2.flac
+samples/brass-48.wav  <=  synth-brass-1:samples/C3.flac
+samples/brass-54.wav  <=  synth-brass-1:samples/F#3.flac
+samples/brass-60.wav  <=  synth-brass-1:samples/C4.flac
+samples/brass-66.wav  <=  synth-brass-1:samples/F#4.flac
+samples/brass-72.wav  <=  synth-brass-1:samples/C5.flac
+samples/fifths-40.wav  <=  synth-fifths:samples/E2.flac
+samples/fifths-44.wav  <=  synth-fifths:samples/G#2.flac
+samples/fifths-48.wav  <=  synth-fifths:samples/C3.flac
+samples/fifths-52.wav  <=  synth-fifths:samples/E3.flac
+samples/fifths-56.wav  <=  synth-fifths:samples/G#3.flac
+samples/fifths-60.wav  <=  synth-fifths:samples/C4.flac
+samples/fifths-64.wav  <=  synth-fifths:samples/E4.flac
+samples/fifths-68.wav  <=  synth-fifths:samples/G#4.flac
+samples/fifths-72.wav  <=  synth-fifths:samples/C5.flac
