@@ -1,0 +1,27 @@
+{
+  "name": "schwarm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "lint": "eslint src tests tools",
+    "test:browser": "playwright test",
+    "render": "node tools/render.ts",
+    "metrics": "python3 tools/metrics.py"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
+    "typescript": "5.9",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^7.3.8"
+  }
+}
