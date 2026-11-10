@@ -50,7 +50,7 @@ export function guestCard(n: GuestNight): CardData {
     curve: s.crowd,
     me: s.me,
     peak: s.peak,
-    drops: n.drops.map((d) => Math.min(1, (d.w - n.start) / Math.max(60000, n.end - n.start))),
+    drops: n.drops.map((d) => Math.min(1, (d.w - n.start) / Math.max(1, n.end - n.start))),
     level: Math.max(1, Math.min(10, Math.round(Math.max(0, ...s.crowd.map((v) => v ?? 0))))),
     footer: "nur auf deinem Handy erstellt · anonym · SCHWARM",
   };

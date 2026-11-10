@@ -490,7 +490,7 @@ function renderNights() {
     const s = summarizeNight(n);
     const li = document.createElement("li");
     const t = document.createElement("span");
-    t.textContent = `${dayLabel(n.start)} · ${clock(n.start)}–${clock(n.end)} · ${s.myMinutes} min mitgetanzt · ${n.drops.length} Drops`;
+    t.textContent = `${dayLabel(n.start)} · ${clock(n.start)}–${clock(n.end)} · ${s.myMinutes} min mitgetanzt · ${n.drops.length} ${n.drops.length === 1 ? "Drop" : "Drops"}`;
     const b = document.createElement("button");
     b.className = "btn small";
     b.textContent = "Karte";

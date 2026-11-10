@@ -140,7 +140,7 @@ body.live .sim-only { display: none; }
 .prof { font-size: 12px; color: hsl(150, 80%, 70%); }
 .prof.none { color: var(--dim); }
 .party-side .btn.play { min-height: 48px; }
-.tv { background: radial-gradient(120% 90% at 50% 45%, hsla(var(--tvhue, 215), 95%, 50%, var(--tvglow, 0.25)), #020208 75%); }
+.tv { background: radial-gradient(120% 90% at 50% 45%, hsla(var(--tvhue, 215), 95%, 50%, var(--tvglow, 0.25)), transparent 75%), #020208; }
 .tvcal { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; background: #000; }
 .tvcal-flash { display: grid; place-content: center; text-align: center; border-radius: 18px; border: 1px solid var(--line); min-height: 60dvh; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 .tvcal-flash.on { background: #fff; color: #000; }

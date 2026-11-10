@@ -107,7 +107,7 @@ test("live night: master + 2 guests → recorded locally (N, drop), report says 
   await expect(g.locator("#cardView")).toBeVisible();
   await g.click("#gCardClose");
   await expect(g.locator("#nights li")).toHaveCount(1);
-  await expect(g.locator("#nights li")).toContainText("1 Drops");
+  await expect(g.locator("#nights li")).toContainText("1 Drop");
   // Master report page lists the live night.
   const r = await page.context().newPage();
   await r.goto("./report.html");

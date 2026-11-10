@@ -28,6 +28,8 @@ export interface GuestNight {
   drops: { w: number; type: string }[];
   maxN: number;
   phonesUp: number;
+  /** Per bar (for short nights): crowd E (null = nobody counted) and own energy, 0–10, 1 decimal. */
+  bars?: [number | null, number | null][];
 }
 export const NIGHTS_KEY = "schwarm.nights";
 export const MAX_NIGHTS = 6;
@@ -66,6 +68,9 @@ export class NightLog {
       m.cBars++;
     }
     m.nMax = Math.max(m.nMax, b.crowd.n);
+    const bars = (this.night.bars ??= []);
+    bars.push([b.crowd.n > 0 ? Math.round(b.crowd.E * 10) / 10 : null, null]);
+    if (bars.length > 4000) bars.shift();
     this.night.maxN = Math.max(this.night.maxN, b.crowd.n);
     if (b.drop && b.i !== this.lastDrop) {
       this.lastDrop = b.i;
@@ -78,23 +83,31 @@ export class NightLog {
     if (f.n <= 0 || f.still) return;
     const m = this.minute(w);
     m.meE += f.e * 10;
+    const last = this.night.bars?.at(-1);
+    if (last) last[1] = Math.round(f.e * 100) / 10;
     m.meBars++;
     if (f.R >= IN_SYNC_R) m.meSync++;
   }
 }
+/** Below this many minutes the card curve uses bars instead of minutes. */
+export const SHORT_NIGHT_MIN = 15;
 export function summarizeNight(n: GuestNight) {
   const mins = n.minutes;
-  const crowd = mins.map((m) => (m.cBars ? m.eSum / m.cBars : null));
-  const me = mins.map((m) => (m.meBars ? m.meE / m.meBars : null));
+  const byMin = mins.map((m) => (m.cBars ? m.eSum / m.cBars : null));
+  const fine = mins.length < SHORT_NIGHT_MIN && (n.bars?.length ?? 0) >= 4;
+  const crowd = fine ? n.bars!.map((b) => b[0]) : byMin;
+  const me = fine ? n.bars!.map((b) => b[1]) : mins.map((m) => (m.meBars ? m.meE / m.meBars : null));
   const meBars = mins.reduce((a, m) => a + m.meBars, 0);
   const meSync = mins.reduce((a, m) => a + m.meSync, 0);
+  let pm = -1;
+  byMin.forEach((v, k) => v !== null && (pm < 0 || v > byMin[pm]!) && (pm = k));
   let peak = -1;
   crowd.forEach((v, k) => v !== null && (peak < 0 || v > crowd[peak]!) && (peak = k));
   return {
     crowd,
     me,
     peak: peak >= 0 ? peak : undefined,
-    peakW: peak >= 0 ? mins[peak].w : null,
+    peakW: pm >= 0 ? mins[pm].w : null,
     /** Minutes in which this phone reported its own movement. */
     myMinutes: mins.filter((m) => m.meBars > 0).length,
     myEnergy: meBars ? mins.reduce((a, m) => a + m.meE, 0) / meBars : null,

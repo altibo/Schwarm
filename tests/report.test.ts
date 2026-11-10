@@ -131,6 +131,8 @@ test("guest night: per-minute crowd + own values, drops once, phones-up calls, s
   assert.equal(n.phonesUp, 1);
   const s = summarizeNight(n);
   assert.equal(s.minutes, 4);
+  assert.equal(s.crowd.length, 100, "short night: per-bar curve");
+  assert.equal(s.me.filter((x) => x !== null).length, 50);
   assert.ok(Math.abs(s.myEnergy! - 7) < 1e-9);
   assert.ok(Math.abs(s.mySync! - 0.5) < 1e-9);
   assert.ok(s.peak! >= 1);

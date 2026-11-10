@@ -82,3 +82,4 @@ body.lost .gview { filter: brightness(0.45) saturate(0.4); }
   .gcard { grid-template-columns: auto minmax(0, 1fr); align-content: center; }
   .gcardimg { height: calc(100dvh - 30px); grid-row: span 4; }
 }
+.simpanel[hidden] { display: none; }
