@@ -19,9 +19,19 @@ for (const g of ["hardhouse", "techno"] as Genre[]) {
       for (const e of s.events) assert.ok(e.step >= 0 && e.step < 16, `${e.voice} ${e.step}`);
       const kicks = s.events.filter((e) => e.voice === "kick" || e.voice === "hkick").map((e) => e.step);
       if (s.plan.section === "breakdown") assert.equal(kicks.length, 0);
-      if (s.plan.section === "groove" && s.plan.fill !== "kickout" && !(s.plan.phraseBar === 7 && g === "hardhouse")) for (const k of [0, 4, 8, 12]) assert.ok(kicks.includes(k), `bar ${s.plan.index}`);
+      if (s.plan.section === "groove" && s.plan.fill !== "kickout" && !(g === "hardhouse" && [7, 10, 11, 12, 13].includes(s.plan.phraseBar))) for (const k of [0, 4, 8, 12]) assert.ok(kicks.includes(k), `bar ${s.plan.index}`);
     }
   });
+  if (g === "hardhouse")
+    test("hardhouse: kick breaks (half-time / breath bars) stay short: at most 2 bars in a row without four on the floor", () => {
+      let run = 0;
+      for (const s of all) {
+        const k = s.events.filter((e) => e.voice === "hkick").map((e) => e.step);
+        const full = s.plan.section !== "groove" || [0, 4, 8, 12].every((x) => k.includes(x)) || s.plan.phraseBar >= 14;
+        run = full ? 0 : run + 1;
+        assert.ok(run <= 2, `bar ${s.plan.index}`);
+      }
+    });
   test(`${g}: drop bar: crash + impact on the one; last pre-drop bar ends in a gap or a tape stop from step 14`, () => {
     const drops = all.filter((x) => x.plan.drop);
     assert.ok(drops.length >= 3);

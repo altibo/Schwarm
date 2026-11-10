@@ -32,6 +32,20 @@ export function arrangeHH(plan: BarPlan): Score {
   const hookPlan = pure ? "full" : pick(pr, ["full", "full", "late", "sparse", "answers"] as const);
   const word = pick(pr, HH.words);
   const fill7 = pick(pr, ["snare", "throw", "stutter", "kickgap", "crush", "zap"] as const);
+  // Groove palette per phrase (drawn after the picks above so they stay stable): hat colour,
+  // bass style rotation, "breath" bars without kick and bass, half-time kick, filter journeys.
+  // These change where the energy sits on the 16th grid, not just which notes play.
+  const hatMode = pick(pr, ["open", "open", "ride", "closed", "gallop"] as const);
+  const bassShift = Math.floor(pr() * 6);
+  const breath = plan.level >= 4 && !plan.hymn && plan.sinceDrop >= 16 && pr() < 0.3;
+  const halfKick = plan.level >= 6 && pr() < 0.22 && !breath;
+  const journey = pr();
+  const bassCut = [0.6, 1, 1, 1.6][Math.floor(pr() * 4)];
+  // Drum kit colour per chapter: kick tuning and drive, hat pitch.
+  const kit = plan.chapter % 3;
+  const kickRate = [1, 0.9, 1.12][kit];
+  const kickTone = clamp(lv.kickDrive * [1, 0.7, 1.25][kit], 0, 1);
+  const hatRate = [1, 1.18, 0.86][kit];
   const sw = v.swing * 0.5;
   const swing = (s: number) => (Math.floor(s) % 2 === 1 && s % 1 === 0 ? s + sw * 2 : s);
   const auto: Auto = { lp: [lv.lp, lv.lp], hp: [20, 20], drive: lv.drive, rumble: 0, rev: 0.1, duck: 0.5, gapAt: -1, trim: 0.74 };
@@ -57,13 +71,17 @@ export function arrangeHH(plan: BarPlan): Score {
     return notes.length;
   };
   const chop = (step: number, vel: number, o: Partial<Ev> = {}) => add({ layer: "chop", voice: "chop", step, len: 1.6, vel, note: 60 + foldKey(key) + degSemis(chord.deg + 4), word, rev: 0.3, dly: 0.25, ...o });
-  const kick = (s: number, vel: number) => add({ layer: "kick", voice: "hkick", step: s, len: 4, vel, tone: lv.kickDrive });
+  const kick = (s: number, vel: number) => add({ layer: "kick", voice: "hkick", step: s, len: 4, vel, tone: kickTone, rate: kickRate });
   const pad = (len: number, vel: number, seventh = true) => add({ layer: "pad", voice: "pad", step: 0, len, vel, notes: chordNotes(chord, key, 53, seventh), rev: 0.55 });
 
   if (groove) {
     const kickout = plan.fill === "kickout";
     // Kick: four on the floor, ghost/pickup variants from level 5.
-    if (!(kickout && pb === 15)) {
+    const breathBar = groove && breath && (pb === 10 || pb === 11);
+    if (breathBar) {
+      if (pb === 11) add({ layer: "fx", voice: "riser", step: 0, len: 16, vel: 0.35, from: 0.5 });
+    } else if (halfKick && (pb === 12 || pb === 13)) for (const s of [0, 8]) kick(s, lv.kick);
+    else if (!(kickout && pb === 15)) {
       for (const s of [0, 4, 8, 12]) if (!(pb === 7 && fill7 === "kickgap" && s === 12 && lv.fx > 0.2)) kick(s, lv.kick);
       if (plan.level >= 5 && v.kick % 3 === 1) kick(14, 0.38);
       if (plan.level >= 5 && v.kick % 3 === 2 && pb % 2 === 1) kick(15, 0.32);
@@ -76,12 +94,12 @@ export function arrangeHH(plan: BarPlan): Score {
       auto.throwFb = 0.6;
     } else if (pb === 0 && plan.level >= 4) add({ layer: "fx", voice: "crash", step: 0, len: 24, vel: 0.4 });
     // Bass.
-    const style = lv.bassPool[v.bass % lv.bassPool.length];
+    const style = lv.bassPool[(v.bass + bassShift) % lv.bassPool.length];
     const answer = pb % 4 === 3;
     const bassOff = kickout && pb === 15 ? 8 : 16;
     const bn = (s: number, semis: number, len: number, vel: number, voice: Ev["voice"] = "hbass") => {
-      if (s >= bassOff) return;
-      add({ layer: "bass", voice, step: swing(s), len, vel: human(r, vel * lv.bass, 0.05), note: bassRoot + semis, cutoff: 500 + plan.level * 150 });
+      if (s >= bassOff || breathBar) return;
+      add({ layer: "bass", voice, step: swing(s), len, vel: human(r, vel * lv.bass, 0.05), note: bassRoot + semis, cutoff: (500 + plan.level * 150) * bassCut });
     };
     const last = answer ? (pb % 8 === 7 ? 12 : 7) : 0;
     if (style === 0) for (const s of [2, 6, 10, 14]) bn(s, s === 14 ? last : 0, 1.5, 1);
@@ -103,8 +121,13 @@ export function arrangeHH(plan: BarPlan): Score {
       const g = rng(hash(plan.nightSeed, plan.phraseIndex, Math.floor(pb / 2), "hat"));
       for (let s = 0; s < 16; s++) {
         const off = s % 4 === 2;
-        if (off && lv.openhat > 0) add({ layer: "openhat", voice: "drum", sample: "openhat", step: swing(s), len: 1.6, vel: human(r, 0.62 * lv.openhat), pan: -0.08 });
-        else if (off) add({ layer: "hats", voice: "drum", sample: "hat", step: swing(s), len: 1, vel: human(r, 0.75 * lv.hats), pan: 0.1 });
+        if (hatMode === "ride" && off) add({ layer: "ride", voice: "drum", sample: "ride", step: swing(s), len: 3, vel: human(r, 0.5 * Math.max(lv.openhat, lv.hats)), pan: 0.2 });
+        else if (hatMode === "closed" && s % 2 === 0 && s % 4 !== 0) add({ layer: "hats", voice: "drum", sample: "hat", step: swing(s), len: 1, vel: human(r, 0.8 * lv.hats), pan: 0.1 });
+        else if (hatMode === "closed") {
+          if (g() < lv.hat16 + 0.35) add({ layer: "hats", voice: "noisehat", step: swing(s), len: 0.5, vel: 0.2 + g() * 0.2, pan: s % 4 === 1 ? -0.25 : 0.25 });
+        } else if (hatMode === "gallop" && s % 4 === 3) add({ layer: "hats", voice: "drum", sample: "hat", step: s, len: 1, vel: human(r, 0.55 * lv.hats), pan: -0.15 });
+        else if (off && lv.openhat > 0) add({ layer: "openhat", voice: "drum", sample: "openhat", step: swing(s), len: 1.6, vel: human(r, 0.62 * lv.openhat), pan: -0.08, rate: hatRate });
+        else if (off) add({ layer: "hats", voice: "drum", sample: "hat", step: swing(s), len: 1, vel: human(r, 0.75 * lv.hats), pan: 0.1, rate: hatRate });
         else if (s % 2 === 1 ? g() < lv.hat16 : g() < lv.hat16 * 0.6) add({ layer: "hats", voice: "noisehat", step: swing(s), len: 0.5, vel: 0.18 + g() * 0.18 * lv.hats, pan: s % 4 === 1 ? -0.2 : 0.2 });
       }
     }
@@ -199,6 +222,11 @@ export function arrangeHH(plan: BarPlan): Score {
     const base = lv.lp;
     const f = (b: number) => (v.filterMove === 1 ? base * (0.3 + 0.7 * Math.abs(Math.cos((Math.PI * b) / 16))) : v.filterMove === 2 ? base * (0.25 + 0.75 * Math.min(1, b / 12)) : base);
     if (auto.hp[1] <= 20) auto.lp = [f(pb), f(pb + 1)];
+    if (journey < 0.3 && plan.level >= 3 && auto.hp[1] <= 20 && !plan.drop && plan.sinceDrop >= 16) {
+      // the phrase opens up from a closed filter
+      const o = (b: number) => base * (0.12 + 0.88 * (b / 16) ** 1.5);
+      auto.lp = [o(pb), o(pb + 1)];
+    } else if (journey >= 0.3 && journey < 0.48 && plan.level >= 5 && pb >= 8 && pb < 12) auto.hp = [pb === 8 ? 20 : 380, 380]; // bass-less lift
     if (v.filterMove === 3 && pb >= 12) auto.hp = [20 + (pb - 12) * 70, 20 + (pb - 11) * 70];
   } else if (plan.section === "breakdown") {
     const b = plan.sectionBar;

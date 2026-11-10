@@ -587,9 +587,10 @@ function voice(mix: Mix, e: Ev, t: number, step: number, duck: number) {
       // Hard House kick: fast pitch drop, short punchy body, click; driven into its own shaper.
       const drive = e.tone ?? 0.6;
       const osc = c.createOscillator();
-      osc.frequency.setValueAtTime(240, t);
-      osc.frequency.exponentialRampToValueAtTime(62, t + 0.03);
-      osc.frequency.exponentialRampToValueAtTime(47, t + 0.16);
+      const k = e.rate ?? 1; // kit tuning per chapter
+      osc.frequency.setValueAtTime(240 * k, t);
+      osc.frequency.exponentialRampToValueAtTime(62 * k, t + 0.03);
+      osc.frequency.exponentialRampToValueAtTime(47 * k, t + 0.16);
       const body = gain(0);
       body.gain.setValueAtTime(0, t);
       body.gain.linearRampToValueAtTime(e.vel * (0.32 + drive * 0.38), t + 0.002);
