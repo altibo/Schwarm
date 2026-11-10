@@ -159,7 +159,7 @@ export function arrangeHH(plan: BarPlan): Score {
     }
     if (lv.chop > 0 && g4 === 3 && !(hookOn && lv.answerVoice === "chop")) chop(14, 0.6 * lv.chop, { dly: pb % 8 === 7 ? 0.75 : 0.3 });
     if (lv.chop > 0 && pb % 8 === 7) auto.throwFb = 0.66;
-    if (lv.pad > 0 && (fast ? pb % 2 === 0 : pb % 4 === 0)) pad(fast ? 32 : 64, 0.45 * lv.pad);
+    if (lv.pad >= 0.15 && pb % 4 === 0) pad(64, 0.45 * lv.pad);
     if (lv.atmos > 0 && pb % 8 === 0) add({ layer: "atmos", voice: "atmos", step: 0, len: 128, vel: 0.5 * lv.atmos, rev: 0.4 });
     // Transitions every 4 / 8 / 16 bars.
     if (pb % 4 === 3 && pb !== 7 && pb !== 15 && plan.level >= 3) add({ layer: "openhat", voice: "drum", sample: "openhat", step: 15, len: 1, vel: 0.5 });

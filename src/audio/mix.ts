@@ -708,14 +708,14 @@ function voice(mix: Mix, e: Ev, t: number, step: number, duck: number) {
       lpf.frequency.setValueAtTime(cut, t);
       lpf.frequency.exponentialRampToValueAtTime(Math.max(300, cut * 0.35), t + dur + 0.1);
       const amp = gain(0);
-      const peak = e.vel * 0.17;
+      const peak = e.vel * 0.2;
       amp.gain.setValueAtTime(0, t);
       amp.gain.linearRampToValueAtTime(peak, t + 0.012);
       amp.gain.setValueAtTime(peak, t + dur);
       amp.gain.setTargetAtTime(0, t + dur, 0.05);
       end = t + dur + 0.3;
       const from = e.slideFrom !== undefined ? midiHz(e.slideFrom) : f * 1.45;
-      for (const det of [-17, -6, 6, 17]) {
+      for (const det of [-17, 0, 17]) {
         const o = c.createOscillator();
         o.type = "sawtooth";
         o.detune.value = det;
@@ -771,22 +771,22 @@ function voice(mix: Mix, e: Ev, t: number, step: number, duck: number) {
       lpf.frequency.setValueAtTime(4800, t);
       lpf.frequency.exponentialRampToValueAtTime(700, t + Math.max(0.12, dur) + 0.05);
       const amp = gain(0);
-      const peak = e.vel * (0.24 / Math.sqrt(notes.length));
+      const peak = e.vel * (0.3 / Math.sqrt(notes.length));
       const hold = Math.max(0.09, dur);
       amp.gain.setValueAtTime(0, t);
       amp.gain.linearRampToValueAtTime(peak, t + 0.003);
       amp.gain.setValueAtTime(peak, t + hold);
       amp.gain.setTargetAtTime(0, t + hold, 0.05);
       end = t + hold + 0.3;
-      for (const n of notes)
-        for (const det of [-7, 7]) {
-          const o = c.createOscillator();
-          o.type = "sawtooth";
-          o.frequency.value = midiHz(n);
-          o.detune.value = det;
-          o.connect(lpf);
-          play(o, t, end);
-        }
+      // one saw per note, alternately detuned (cheap on phones, still wide)
+      notes.forEach((n, i) => {
+        const o = c.createOscillator();
+        o.type = "sawtooth";
+        o.frequency.value = midiHz(n);
+        o.detune.value = i % 2 ? 9 : -9;
+        o.connect(lpf);
+        play(o, t, end);
+      });
       const sq = c.createOscillator();
       sq.type = "square";
       sq.frequency.value = midiHz(notes[0] - 12);
