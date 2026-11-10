@@ -17,6 +17,8 @@ export class LiveEngine {
   /** Bars that already started playing (for the UI history). */
   played: Score[] = [];
   lateBars = 0;
+  /** Main-thread cost of planning + scheduling a bar, and the most simultaneously live sources. */
+  perf = { bars: 0, schedMsSum: 0, schedMsMax: 0, maxSources: 0 };
   running = false;
   ended = false;
   onBar: (s: Score) => void = () => {};
@@ -78,10 +80,16 @@ export class LiveEngine {
     if (!ctx || !this.mix || !this.running) return;
     const ahead = document.hidden ? 1.6 : 0.3;
     while (!this.runner.finished && this.startAt + this.runnerTime() < ctx.currentTime + ahead) {
+      const c0 = performance.now();
       const score = this.runner.next();
       const at = this.startAt + score.plan.time;
       if (at < ctx.currentTime) this.lateBars++;
       scheduleBar(this.mix, score, Math.max(at, ctx.currentTime + 0.005));
+      const ms = performance.now() - c0;
+      this.perf.bars++;
+      this.perf.schedMsSum += ms;
+      this.perf.schedMsMax = Math.max(this.perf.schedMsMax, ms);
+      this.perf.maxSources = Math.max(this.perf.maxSources, this.mix.sources.size);
       this.scheduled.push({ at, score });
       this.onSchedule(score, this.ctxToWall(at));
     }
