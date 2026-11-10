@@ -6,21 +6,24 @@
 <meta name="theme-color" content="#07061a" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" href="./icon-192.png" />
-<title>SCHWARM · KI-DJ (Phase 1)</title>
-  <script type="module" crossorigin src="./assets/main-CarkPV6N.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/rng-pzCC_nHg.js">
-  <link rel="modulepreload" crossorigin href="./assets/sw-register-BY9j4oLB.js">
-  <link rel="modulepreload" crossorigin href="./assets/live-Cq2Vi8SU.js">
-  <link rel="modulepreload" crossorigin href="./assets/motion-DwOdM-_i.js">
-  <link rel="modulepreload" crossorigin href="./assets/sense-_i91Bk_9.js">
-  <link rel="stylesheet" crossorigin href="./assets/rng-yEhPTpPM.css">
+<title>SCHWARM · KI-DJ (Phase 2)</title>
+  <script type="module" crossorigin src="./assets/main-BoFer4BZ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/rng-GTlYKpkV.js">
+  <link rel="modulepreload" crossorigin href="./assets/sw-register-CU87-3VV.js">
+  <link rel="modulepreload" crossorigin href="./assets/set-DTtuGg1h.js">
+  <link rel="modulepreload" crossorigin href="./assets/live-C3-v3XpZ.js">
+  <link rel="modulepreload" crossorigin href="./assets/card-DhppGTyA.js">
+  <link rel="modulepreload" crossorigin href="./assets/motion-Di2M-QMb.js">
+  <link rel="modulepreload" crossorigin href="./assets/sense-CKOHxvJv.js">
+  <link rel="modulepreload" crossorigin href="./assets/recorder-By8jDoC8.js">
+  <link rel="stylesheet" crossorigin href="./assets/rng-Bk9E-J92.css">
 </head>
 <body>
 <main class="app" id="app">
   <header class="top">
     <strong class="logo">SCHWARM</strong>
     <span class="tag" id="tag">Phase 1 · Testversion</span>
-    <nav><a href="./test.html">Blindtest</a><a href="./guest.html">Teilnehmer-Ansicht</a></nav>
+    <nav><a href="./report.html" id="navReport">Nach der Nacht</a><a href="./test.html">Blindtest</a><a href="./guest.html">Gast</a></nav>
   </header>
   <section class="stage">
     <div class="status">
@@ -82,11 +85,19 @@
     <p class="code" id="code">––– –––</p>
     <p id="pGuests"><b>0</b> verbunden · 0 zählen</p>
     <ul class="nets" id="pNets"></ul>
+    <p class="prof" id="profTxt">Party-Profil: noch nicht eingemessen</p>
     <div class="row">
       <button class="btn small" id="tap">Mitklopfen (8×)</button>
+      <button class="btn small" id="micOpen">Mikrofon-Messung</button>
+    </div>
+    <div class="row">
+      <button class="btn small" id="tvCalOpen">TV-Blitz einmessen</button>
       <button class="btn small" id="pTv">TV-Modus</button>
     </div>
     <p class="dim" id="latTxt">Lautsprecher-Versatz: 0 ms</p>
+    <div class="row">
+      <button class="btn play" id="pStart">▶ Start</button>
+    </div>
     <div class="row">
       <button class="btn small" id="newParty">Neue Party</button>
       <button class="btn small" id="closeParty">Zurück</button>
@@ -106,6 +117,44 @@
   <div class="tv-qr"><canvas id="tvQr" class="qr small"></canvas><b id="tvCode">––– –––</b></div>
   <button class="btn tv-exit" id="tvExit">Zurück</button>
 </section>
+<section class="overlay tvcal" id="tvcal" hidden aria-label="TV-Blitz einmessen">
+  <div class="tvcal-flash" id="tvcalFlash" role="button" tabindex="0" aria-label="Tippen, wenn es blitzt">
+    <p class="tvcal-big" id="tvcalCount">Tippe 8×, genau wenn es weiß blitzt</p>
+    <p class="tvcal-sub">Auf diesem Gerät tippen (oder Leertaste), während du auf den Fernseher schaust.</p>
+  </div>
+  <div class="tvcal-side">
+    <h2>TV-Blitz einmessen</h2>
+    <p class="hint-tv"><b>Browser direkt am TV oder per HDMI – kein Casting oder AirPlay, Spielmodus an.</b> Fernseher verzögern das Bild oft um 30–150 ms, Casting noch mehr.</p>
+    <label class="slider">TV-Versatz <output id="tvOut">0 ms</output>
+      <input id="tvMs" type="range" min="0" max="300" step="5" value="0" /></label>
+    <p class="dim" id="tvcalTxt">Der Blitz kommt dann um diesen Wert früher, damit er auf dem Fernseher genau auf der Eins erscheint. Gespeichert im Party-Profil dieses Geräts.</p>
+    <div class="row">
+      <button class="btn small" id="tvcalReset">Neu tippen</button>
+      <button class="btn small" id="tvcalDone">Fertig</button>
+    </div>
+  </div>
+</section>
+<section class="overlay mic" id="mic" hidden aria-label="Mikrofon-Messung">
+  <div class="mic-box">
+    <h2>Lautsprecher-Verzögerung per Mikrofon (optional)</h2>
+    <p>Dieses Gerät spielt 8 Klicks und hört sie mit seinem <b>eingebauten Mikrofon</b>. Echo-Unterdrückung, Rauschfilter und automatische Lautstärke sind dabei aus. Das Mikrofon wird sofort danach geschlossen; nichts wird aufgenommen oder gespeichert außer der Verzögerung.</p>
+    <p class="warn-bt"><b>Achtung Bluetooth:</b> Hat die Box ein eigenes Mikrofon (Freisprechfunktion) oder ist ein Headset verbunden, kann das System ins Freisprech-Profil wechseln – dann klingt die Musik mono und schlechter und die Verzögerung ändert sich. Im Zweifel lieber mitklopfen.</p>
+    <p class="dim">Die Musik stoppt für die Messung (ca. 5 s). Gerät nah an die Box, Raum möglichst leise, Box laut genug.</p>
+    <p class="mic-res" id="micRes" aria-live="polite"></p>
+    <div class="row">
+      <button class="btn" id="micGo">Messen</button>
+      <button class="btn" id="micUse" disabled>Übernehmen</button>
+      <button class="btn small" id="micClose">Zurück</button>
+    </div>
+  </div>
+</section>
+<div class="resume" id="resume" hidden role="dialog" aria-label="Party fortsetzen">
+  <p id="resumeTxt">Party fortsetzen?</p>
+  <div class="row">
+    <button class="btn play" id="resumeGo">Fortsetzen</button>
+    <button class="btn small" id="resumeNo">Neu beginnen</button>
+  </div>
+</div>
 <div class="flash" id="flash" aria-hidden="true"></div>
 </body>
 </html>

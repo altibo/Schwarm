@@ -25,7 +25,8 @@
   <h2>Wohin die Daten gehen</h2>
   <p>Die Kennzahlen gehen an das Master-Gerät des Gastgebers. Für die Vermittlung nutzt der Prototyp einen <b>öffentlichen Vermittler</b> (MQTT-Broker, z. B. shiftr.io, HiveMQ oder EMQX, oder für WebRTC den PeerJS-Signalisierungsdienst). Alle Nachrichten sind <b>Ende-zu-Ende-verschlüsselt</b> (AES-GCM); der Schlüssel steht nur im QR-Link hinter dem „#“ und wird nie an einen Server gesendet. Der Vermittler sieht nur verschlüsselte Daten, eine zufällige Sitzungskennung und – technisch bedingt – deine IP-Adresse.</p>
   <h2>Speicherung</h2>
-  <p>Der Master verarbeitet die Kennzahlen nur als <b>Gruppenwerte</b> (Anzahl, Energie, Gleichtakt) für die Musik und speichert keine Werte einzelner Gäste. Nach der Party bleibt nichts Personenbezogenes übrig.</p>
+  <p>Der Master verarbeitet die Kennzahlen nur als <b>Gruppenwerte</b> (Anzahl, Energie, Gleichtakt) für die Musik und speichert keine Werte einzelner Gäste. Die Auswertung „Nach der Nacht“ liegt <b>nur auf dem Master-Gerät</b> (im Browser-Speicher) und enthält nur Gruppenwerte pro Takt; der Gastgeber kann sie dort jederzeit löschen.</p>
+  <p><b>Auf deinem Handy</b> bleibt für deine Story-Karte eine kleine Zusammenfassung deiner Nacht (pro Minute: Gruppenwerte, die du live empfangen hast, und deine eigene Energie/Takt-Quote) – höchstens die letzten 6 Nächte, löschbar unter „Deine Nächte“. Es gibt <b>keinen Rückschau-Server</b>: nichts davon wird hochgeladen. Die Karte entsteht auf deinem Handy und wird nur geteilt, wenn du es willst.</p>
   <h2>Freiwillig, jederzeit raus</h2>
   <p>Mitmachen ist freiwillig. „Raus“ beendet die Messung sofort; Schließen der Seite ebenso. Ist die Seite verdeckt oder das Handy gesperrt, misst sie nicht und du zählst nicht – du giltst dann auch nicht als müde.</p>
   <p><a href="./guest.html">Zurück</a></p>
