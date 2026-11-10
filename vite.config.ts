@@ -8,7 +8,7 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       // render.html is a dev-only page for the offline render tool and is not deployed.
-      input: { main: resolve("index.html"), test: resolve("test.html"), guest: resolve("guest.html") },
+      input: { main: resolve("index.html"), test: resolve("test.html"), guest: resolve("guest.html"), privacy: resolve("privacy.html"), swarm: resolve("swarm.html") },
     },
   },
   plugins: [
@@ -22,7 +22,7 @@ export default defineConfig({
           ...Object.values(bank.instruments as Record<string, { zones: { file: string }[] }>).flatMap((i) => i.zones.map((z) => z.file)),
         ];
         const assets = readdirSync("dist/assets").map((f) => `assets/${f}`);
-        const shell = ["./", "index.html", "test.html", "guest.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "samples/CREDITS.txt", ...assets, ...samples];
+        const shell = ["./", "index.html", "test.html", "guest.html", "privacy.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "samples/CREDITS.txt", ...assets, ...samples];
         const hash = createHash("sha256");
         for (const f of shell.filter((f) => f !== "./")) hash.update(f).update(readFileSync(`dist/${f}`));
         const id = hash.digest("hex").slice(0, 12);

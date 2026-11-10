@@ -4,14 +4,14 @@ for (const vp of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { wi
   test(`participant view ${vp.width}×${vp.height}`, async ({ page }) => {
     await page.setViewportSize(vp);
     const errors = watchErrors(page);
-    await page.goto("./guest.html");
+    await page.goto("./guest.html?preview");
     await expect(page.locator("#gN")).toHaveText("128");
     await checkLayout(page);
     expect(errors).toEqual([]);
   });
 test("N from 1 to 5000: solo text, log-scaled dots; pocket mode is black, Statistik brings stats back", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("./guest.html");
+  await page.goto("./guest.html?preview");
   await page.locator("#sN").fill("0");
   await expect(page.locator("#gNtxt")).toHaveText("Solo: nur du tanzt");
   await expect(page.locator("#gRuleN")).toContainText("Solo");
@@ -33,6 +33,13 @@ test("N from 1 to 5000: solo text, log-scaled dots; pocket mode is black, Statis
   await expect(page.locator("#gview")).toBeHidden();
   const bg = await page.locator("#pocket").evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(bg).toBe("rgb(0, 0, 0)");
+  // Touch lock: a tap does nothing, a 2 s hold brings the stats back.
   await page.click("#showStats");
+  await expect(page.locator("#gview")).toBeHidden();
+  const box = (await page.locator("#showStats").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(2300);
+  await page.mouse.up();
   await expect(page.locator("#gview")).toBeVisible();
 });

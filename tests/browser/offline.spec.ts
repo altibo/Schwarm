@@ -7,9 +7,9 @@ test("PWA: works offline after the first visit (pages + samples cached)", async 
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: 15000 }).toBe(true);
   await context.setOffline(true);
-  for (const p of ["./", "./test.html", "./guest.html"]) {
+  for (const p of ["./", "./test.html", "./guest.html", "./guest.html?preview", "./privacy.html"]) {
     await page.goto(p);
-    await expect(page.locator(".logo")).toHaveText("SCHWARM");
+    await expect(page).toHaveTitle(/SCHWARM/);
   }
   const ok = await page.evaluate(async () => (await fetch("./samples/drum-clap.wav")).ok);
   expect(ok).toBe(true);

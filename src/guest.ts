@@ -276,6 +276,8 @@ $("takeOut").onclick = () => setPocket(!state.pocket);
 window.addEventListener("resize", () => ((last = 0), update()));
 // --- flash on the one (light command arrives ≥ 1 bar ahead) -----------------------------
 let flashes: number[] = [];
+/** Flashes shown, in master clock ms (for the sync test). */
+const flashLog: { planned: number; shown: number; reduced: boolean }[] = [];
 let flashUntil = 0;
 const flashEl = $("flash");
 function flashFrame(t: number) {
@@ -283,6 +285,7 @@ function flashFrame(t: number) {
   for (const f of flashes)
     if (t >= f && t < f + 80) {
       flashUntil = t + 450;
+      if (core) flashLog.push({ planned: core.link.clock.toMaster(performance.timeOrigin + f), shown: core.link.clock.toMaster(performance.timeOrigin + t), reduced: reduce });
       flashes = flashes.filter((x) => x !== f);
       break;
     }
@@ -419,4 +422,4 @@ else if (params.has("preview")) {
 } else show("join");
 requestAnimationFrame(frame);
 registerSW();
-(window as unknown as { __guest: unknown }).__guest = { state, dotsFor, core: () => core };
+(window as unknown as { __guest: unknown }).__guest = { state, dotsFor, core: () => core, flashLog };

@@ -63,3 +63,5 @@
 .light-up { margin: 0; font-size: 54px; font-weight: 900; color: #fff; letter-spacing: 0.04em; text-shadow: 0 0 30px #fff; }
 .light-sub { margin: 0; font-size: 16px; color: rgba(255, 255, 255, 0.92); }
 .btn.live-g[hidden] { display: none; }
+.gscreen > * { min-width: 0; }
+.codein input { width: 100%; min-width: 0; }

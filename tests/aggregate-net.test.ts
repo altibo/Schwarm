@@ -146,3 +146,22 @@ test("crypto: AES-GCM round trip, wrong key or other session → null; codes rea
   const lobby = await Box.fromCode(code, "lobby");
   assert.deepEqual(await (await Box.fromCode(code, "lobby")).open(await lobby.seal({ s: 1 })), { s: 1 });
 });
+test("light moments: start with a build-up, end 8 bars after the drop, at most 4 per hour", async () => {
+  const { lightStep, LM_SPACING_MS } = await import("../src/party.ts");
+  let lm = { active: false, lastStart: -Infinity, endBar: -1 };
+  let starts = 0;
+  const bar = (index: number, section: string, sectionBar: number, buildBlock = 0, drop: string | null = null) => ({ index, section, sectionBar, buildBlock, drop });
+  // A build-up every 6 minutes for an hour (more often than allowed).
+  for (let k = 0; k < 10; k++) {
+    const t = k * 6 * 60000;
+    const was = lm.active;
+    lm = lightStep(lm, bar(k * 200, "build", 0), t);
+    if (lm.active && !was) starts++;
+    lm = lightStep(lm, bar(k * 200 + 8, "groove", 0, 0, "freigeschaltet"), t + 15000);
+    assert.equal(lm.endBar >= 0 || !lm.active, true);
+    lm = lightStep(lm, bar(k * 200 + 16, "groove", 8), t + 30000);
+    assert.equal(lm.active, false);
+  }
+  assert.ok(starts <= 4 && starts >= 3, `starts=${starts}`);
+  assert.equal(LM_SPACING_MS, 15 * 60000);
+});

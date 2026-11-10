@@ -60,11 +60,10 @@ export class Party {
     this.grid.set(p.index, { at: heard, dur, bpm: p.bpm });
     if (this.grid.size > 64) this.grid.delete(Math.min(...this.grid.keys()));
     const t = now();
-    // Light moment: from the start of a build-up (spacing ≥ 15 min) until 8 bars after the drop.
-    if (p.section === "build" && p.sectionBar === 0 && p.buildBlock === 0 && !this.lm.active && t - this.lm.lastStart >= LM_SPACING_MS) {
-      this.lm = { active: true, lastStart: t, endBar: -1 };
-      this.agg.freezeE = this.latest?.E ?? 0;
-    }
+    const was = this.lm.active;
+    this.lm = lightStep(this.lm, p, t);
+    if (this.lm.active && !was) this.agg.freezeE = this.latest?.E ?? 0;
+    if (!this.lm.active && was) this.agg.freezeE = null;
     // Light command one (or two) bars ahead: the drop lands on the one after the pre-drop.
     if (p.preDrop && p.nextDrop) {
       this.dropAt = heard + (BLOCK - p.sectionBar) * dur;
@@ -75,11 +74,6 @@ export class Party {
       this.dropAt = heard;
       this.dropType = p.drop;
       if (!this.flashes.some((f) => Math.abs(f - heard) < 50)) this.flashes.push(heard);
-      if (this.lm.active) this.lm.endBar = p.index + 8;
-    }
-    if (this.lm.active && this.lm.endBar >= 0 && p.index >= this.lm.endBar) {
-      this.lm.active = false;
-      this.agg.freezeE = null;
     }
     this.flashes = this.flashes.filter((f) => f > t - 5000);
     this.phonesUp = this.lm.active && !p.drop && p.sinceDrop > 0 && (p.preDrop || p.readiness >= 0.75);
@@ -147,9 +141,28 @@ export class Party {
   get lightMoment() {
     return this.lm.active;
   }
+  /** Test/demo hook: start a light moment now (as if a build-up had begun). */
+  startLightMoment() {
+    this.lm = { active: true, lastStart: now(), endBar: -1 };
+    this.agg.freezeE = this.latest?.E ?? 0;
+  }
   close() {
     clearInterval(this.timer);
     this.hub.close();
   }
 }
 const r2 = (x: number) => Math.round(x * 100) / 100;
+export interface LightState {
+  active: boolean;
+  lastStart: number;
+  endBar: number;
+}
+/** Light moment rule (pure): starts with a build-up (≥ 15 min after the last one, so at most
+ * 4 per hour), ends 8 bars after the drop. */
+export function lightStep(lm: LightState, p: { section: string; sectionBar: number; buildBlock: number; drop: string | null; index: number }, t: number): LightState {
+  let s = { ...lm };
+  if (p.section === "build" && p.sectionBar === 0 && p.buildBlock === 0 && !s.active && t - s.lastStart >= LM_SPACING_MS) s = { active: true, lastStart: t, endBar: -1 };
+  if (p.drop && s.active) s.endBar = p.index + 8;
+  if (s.active && s.endBar >= 0 && p.index >= s.endBar) s.active = false;
+  return s;
+}
