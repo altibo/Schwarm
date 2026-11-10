@@ -5,18 +5,22 @@ import { arrange, type Score } from "./arranger.ts";
 import { presetById } from "./curve.ts";
 import { hash, rng } from "./rng.ts";
 export const BLIND_TEST_SEED = 2026;
+/** "live": the measured aggregate of the party (guests + dancing master). */
+export type CrowdMode = "sim" | "manual" | "live";
 export interface SetOptions {
   preset: string;
   seed: number;
   /** "sim": the crowd follows the music (model). "manual": sliders set the aggregate. */
-  crowd: "sim" | "manual";
+  crowd: CrowdMode;
   n?: number;
 }
 export class SetRunner {
   readonly director: Director;
   readonly sim: CrowdSim;
-  mode: "sim" | "manual";
+  mode: CrowdMode;
   manual: CrowdInput = { energy: 3, sync: 0.3, participation: 0.8, n: 12 };
+  /** Latest measured aggregate (set by the party controller). n = 0: nobody counts. */
+  live: CrowdInput = { energy: 0, sync: 0, participation: 0, n: 0 };
   private last: CrowdInput;
   private boost = 0;
   private boostBars = 0;
@@ -33,7 +37,7 @@ export class SetRunner {
     return this.director.finished;
   }
   next(): Score {
-    const crowd = this.mode === "manual" ? { ...this.manual } : this.last;
+    const crowd = this.mode === "manual" ? { ...this.manual } : this.mode === "live" ? { ...this.live } : this.last;
     const plan = this.director.step(crowd);
     this.afterBar(plan);
     return arrange(plan);
@@ -46,7 +50,7 @@ export class SetRunner {
     }
     if (this.boostBars > 0) this.boostBars--;
     else this.boost = 0;
-    this.sim.n = this.mode === "manual" ? this.manual.n : this.sim.n;
+    this.sim.n = this.mode === "manual" ? this.manual.n : this.mode === "live" ? Math.max(1, this.live.n) : this.sim.n;
     this.last = this.sim.step(plan.level, plan.section, plan.minute, this.boost);
   }
 }

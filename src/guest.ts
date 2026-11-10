@@ -6,18 +6,30 @@ import { drawCurve, type CurvePoint } from "./ui/curve-view.ts";
 import { levelHue, reducedMotion } from "./ui/theme.ts";
 import { rng } from "./rng.ts";
 import { registerSW } from "./sw-register.ts";
+import { GuestCore } from "./guest-core.ts";
+import { resolveCode } from "./net/session.ts";
+import type { BarMsg } from "./net/session.ts";
+import { normCode } from "./net/crypto.ts";
+import { now } from "./net/clock.ts";
+import { holdButton } from "./ui/hold.ts";
+import { askMotion, onMotion, keepAwake } from "./ui/motion.ts";
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const root = document.documentElement;
 const BPM = 130;
-const state = { n: 128, energy: 6.5, sync: 0.55, myEnergy: 7, myStab: 0.7, minute: 24, phase: "Aufbau", pocket: false };
+const state = {
+  n: 128, energy: 6.5, sync: 0.55, myEnergy: 7, myStab: 0.7, minute: 24, phase: "Aufbau", pocket: false,
+  // live mode (fed by the master's bar messages + the own sensor)
+  live: false, joined: 0, ready: 0, rule: "", mode: "", preset: "1h", lm: false, up: false, sensing: true, hasMe: false,
+};
+const liveHist: CurvePoint[] = [];
 const fmt = (x: number, d = 1) => x.toLocaleString("de-DE", { minimumFractionDigits: d, maximumFractionDigits: d });
 // --- particles -------------------------------------------------------------------------
 const MAX_DOTS = 420;
 const r = rng(77);
 const dots = Array.from({ length: MAX_DOTS }, (_, i) => ({ a: (i * 2.399963) % (Math.PI * 2), off: r() * 2 - 1, ph: r(), sp: 0.6 + r() * 0.8, sz: 0.7 + r() * 0.6 }));
 // N = 1: the crowd *is* me, so crowd energy/sync follow my own values.
-const effE = () => (state.n <= 1 ? state.myEnergy : state.energy);
-const effS = () => (state.n <= 1 ? state.myStab : state.sync);
+const effE = () => (state.live ? state.energy : state.n <= 1 ? state.myEnergy : state.energy);
+const effS = () => (state.live ? state.sync : state.n <= 1 ? state.myStab : state.sync);
 /** Dots shown for N dancers: 1:1 up to 150, then logarithmic so 1000+ still reads as a swarm. */
 export const dotsFor = (n: number) => (n <= 150 ? n : Math.min(MAX_DOTS, Math.round(150 + 110 * Math.log10(n / 150))));
 let sprite: HTMLCanvasElement | null = null;
@@ -82,7 +94,8 @@ function drawSwarm(now: number, beat: number, motion: boolean) {
   }
   g.globalAlpha = 1;
   g.globalCompositeOperation = "source-over";
-  // "Du": always at the top of the ring, white with a ring
+  // "Du": always at the top of the ring, white with a ring (not shown when only watching)
+  if (!state.hasMe) return;
   const myIn = state.myStab >= 0.6;
   const mx = cx, my = cy - R * (myIn ? 1 : 1.25) - (myIn ? pulse * 7 : 0);
   g.beginPath();
@@ -150,19 +163,19 @@ function update() {
   const cE = effE();
   const cS = effS();
   const crowd = { energy: cE, sync: cS, participation: solo ? 1 : 0.8, n: state.n };
-  const ready = state.phase === "Drop" || state.phase === "Peak" ? 1 : readiness(crowd);
+  const ready = state.live ? state.ready : state.phase === "Drop" || state.phase === "Peak" ? 1 : readiness(crowd);
   const hue = levelHue(state.phase === "Breakdown" ? 1 : Math.max(1, Math.round(effE())));
   root.style.setProperty("--hue", String(hue));
   $("gphase").textContent = state.phase;
   $("gN").textContent = formatN(state.n);
-  $("gNtxt").textContent = state.n === 1 ? "Solo: nur du tanzt" : "tanzen mit";
+  $("gNtxt").textContent = state.n === 1 ? (state.live && !state.hasMe ? "tanzt gerade" : "Solo: nur du tanzt") : "tanzen mit";
   const k = state.n / dotsFor(state.n);
   $("gScale").textContent = k > 1.05 ? `1 Punkt ≈ ${fmt(k, k < 10 ? 1 : 0)} Tänzer` : "1 Punkt = 1 Tänzer";
   $("myE").style.width = `${state.myEnergy * 10}%`;
   $("myS").style.width = `${state.myStab * 100}%`;
   $("myFb").textContent = state.myStab >= 0.6 ? "Du bist im Takt!" : state.myStab >= 0.4 ? "Fast – folg der Kick" : "Such den Beat";
   $("gReady").style.width = `${Math.round(ready * 100)}%`;
-  $("gReadyTxt").textContent = ready >= 1 ? (state.phase === "Drop" ? "Drop!" : "frei") : `${Math.round(ready * 100)} %`;
+  $("gReadyTxt").textContent = state.phase === "Drop" ? "Drop!" : state.live && state.n === 0 ? "nach Plan" : ready >= 1 ? "frei" : `${Math.round(ready * 100)} %`;
   $("gview").querySelector(".ready")!.classList.toggle("free", ready >= 1);
   const rule = unlockRule(state.n);
   $("gRule").textContent =
@@ -175,27 +188,51 @@ function update() {
       : state.phase === "Breakdown"
         ? "Durchatmen – gleich baut es sich wieder auf."
         : "Weiter so!";
-  $("gRuleN").textContent = `Freigabe-Regel · ${rule.text}`;
+  $("gRuleN").textContent = state.live ? (state.n ? `Freigabe-Regel · ${state.rule} · zählt gerade ${state.n} von ${state.joined}` : state.rule) : `Freigabe-Regel · ${rule.text}`;
   gauge("gEnergy", cE, 10, fmt(cE), hue);
   gauge("gSync", cS, 1, `${Math.round(cS * 100)}%`, 190);
-  const preset = presetById("1h");
-  const hist: CurvePoint[] = [];
-  for (let t = 0; t <= state.minute * 60; t += 30) hist.push({ t, level: Math.max(1, Math.round(Math.min(10, 2 + (t / 60) * 0.25))), ist: Math.min(10, 1.5 + (t / 60) * 0.24), section: "groove", drop: null });
+  const preset = presetById(state.preset);
+  let hist: CurvePoint[] = liveHist;
+  if (!state.live) {
+    hist = [];
+    for (let t = 0; t <= state.minute * 60; t += 30) hist.push({ t, level: Math.max(1, Math.round(Math.min(10, 2 + (t / 60) * 0.25))), ist: Math.min(10, 1.5 + (t / 60) * 0.24), section: "groove", drop: null });
+  }
   drawCurve($<HTMLCanvasElement>("gCurve"), preset, hist, state.minute * 60, { me: true, compact: true });
-  $("pocket").hidden = !state.pocket;
-  $("gview").hidden = state.pocket;
+  $("pocket").hidden = !state.pocket || !screenOn("gview");
+  $("gview").hidden = state.pocket || !screenOn("gview");
+  if (state.live) {
+    $("light").hidden = !state.lm;
+    $("lightUp").textContent = state.up ? "PHONES UP!" : "Licht-Moment";
+    $("lightSub").textContent = state.up ? "Handy hoch – gleich kommt der Drop auf die Eins" : state.phase === "Drop" ? "Drop!" : "Gleich: Handy raus und hoch";
+  }
+}
+// --- screens ---------------------------------------------------------------------------
+let screen: "join" | "consent" | "joining" | "gview" = "gview";
+const screenOn = (s: typeof screen) => screen === s;
+function show(s: typeof screen) {
+  screen = s;
+  for (const id of ["join", "consent", "joining"] as const) $(id).hidden = s !== id;
+  update();
 }
 // Battery: no animation in pocket mode or when hidden; 30 fps cap otherwise; static frame with reduced motion.
 let last = 0;
 const t0 = performance.now();
 function frame(now: number) {
   requestAnimationFrame(frame);
-  if (state.pocket || document.hidden) return;
+  flashFrame(now);
+  if (state.pocket || document.hidden || screen !== "gview") return;
   const motion = !reducedMotion();
   if (!motion && last) return;
   if (now - last < 33) return;
   last = now;
-  const beat = (((now - t0) / 1000) * (BPM / 60)) % 1; // 2.17 Hz glow pulse, under 3 Hz
+  // Glow pulse once per beat (≤ 2.3 Hz, under 3 Hz). Live: on the master's heard grid.
+  let beat = (((now - t0) / 1000) * (BPM / 60)) % 1;
+  const g = core?.link.last;
+  if (g && core) {
+    const beatMs = 60000 / g.bpm;
+    const tm = core.link.clock.toMaster(performance.timeOrigin + now);
+    beat = ((((tm - g.at) / beatMs) % 1) + 1) % 1;
+  }
   root.style.setProperty("--pulse", motion ? Math.exp(-beat * 5).toFixed(3) : "0");
   drawSwarm(now, beat, motion);
 }
@@ -225,11 +262,161 @@ $("sPhase").querySelectorAll("button").forEach((b) =>
     update();
   }),
 );
-$("toPocket").onclick = () => ((state.pocket = true), update());
-$("showStats").onclick = () => ((state.pocket = false), (last = 0), update());
-$("takeOut").onclick = () => ((state.pocket = !state.pocket), (last = 0), update());
+const setPocket = (on: boolean) => {
+  state.pocket = on;
+  if (core) core.pocket = on;
+  last = 0;
+  update();
+};
+$("toPocket").onclick = () => setPocket(true);
+// Touch lock: the black pocket screen swallows every touch; only a 2 s hold brings the stats back.
+holdButton($("showStats"), 2000, () => setPocket(false));
+$("pocket").addEventListener("touchstart", (e) => e.target === $("pocket") && e.preventDefault(), { passive: false });
+$("takeOut").onclick = () => setPocket(!state.pocket);
 window.addEventListener("resize", () => ((last = 0), update()));
-update();
+// --- flash on the one (light command arrives ≥ 1 bar ahead) -----------------------------
+let flashes: number[] = [];
+let flashUntil = 0;
+const flashEl = $("flash");
+function flashFrame(t: number) {
+  const reduce = reducedMotion();
+  for (const f of flashes)
+    if (t >= f && t < f + 80) {
+      flashUntil = t + 450;
+      flashes = flashes.filter((x) => x !== f);
+      break;
+    }
+  flashes = flashes.filter((f) => f > t - 1000);
+  // ≤ 1 flash per bar (< 1 Hz), none with reduced motion (the light screen stays steady).
+  flashEl.style.opacity = reduce ? "0" : String(Math.max(0, (flashUntil - t) / 450) * 0.9);
+}
+// --- live mode -------------------------------------------------------------------------
+const params = new URLSearchParams(location.search);
+const hashK = new URLSearchParams(location.hash.slice(1)).get("k");
+const net = params.get("net") ?? "auto";
+let core: GuestCore | null = null;
+const openedAt = now();
+let wasUp = false;
+function onBar(m: BarMsg) {
+  state.n = m.crowd.n;
+  state.joined = m.crowd.joined;
+  state.energy = m.crowd.E;
+  state.sync = m.crowd.S;
+  state.ready = m.crowd.ready;
+  state.rule = m.crowd.rule;
+  state.mode = m.crowd.mode;
+  state.phase = m.phase;
+  state.minute = m.min;
+  state.preset = m.preset;
+  state.lm = m.lm;
+  state.up = m.up;
+  if (m.up && !wasUp) navigator.vibrate?.([220, 120, 220]);
+  wasUp = m.up;
+  const prev = liveHist.at(-1);
+  const t = m.min * 60;
+  if (!prev || t > prev.t) liveHist.push({ t, level: m.lvl, ist: m.crowd.n ? m.crowd.E : 0, section: m.sec as CurvePoint["section"], drop: m.drop as CurvePoint["drop"] });
+  if (liveHist.length > 4000) liveHist.shift();
+  const c = core!;
+  const flashAt = (master: number) => c.link.clock.toLocal(master) - performance.timeOrigin;
+  if (m.dropAt) {
+    const barMs = 240000 / m.bpm;
+    // The one, then the next three downbeats (one flash per bar).
+    for (let k = 0; k < 4; k++) {
+      const f = flashAt(m.dropAt + k * barMs);
+      if (!flashes.some((x) => Math.abs(x - f) < 100) && f > performance.now() - 50) flashes.push(f);
+    }
+  }
+  const lat = Math.round(c.link.clock.error);
+  $("gStat").textContent = `Verbunden über ${c.link.transport} · Uhr ±${lat} ms · ${c.sensing ? (c.visible ? "du zählst" : "pausiert") : "nur zuschauen"}`;
+  last = 0;
+  update();
+}
+async function goLive(sid: string, key: string) {
+  state.live = true;
+  state.n = 0;
+  state.sensing = true;
+  $("gtag").textContent = "Live · verschlüsselt";
+  $("simpanel").hidden = true;
+  $("leave").hidden = false;
+  core = new GuestCore({ sid, key, net });
+  core.onBar = onBar;
+  core.onFeatures = (f) => {
+    state.myEnergy = f.e * 10;
+    state.myStab = f.R;
+  };
+  show("consent");
+  core.connect().catch((e) => ($("joinErr").textContent = `Keine Verbindung: ${(e as Error).message}. Bitte WLAN/Mobilfunk prüfen.`));
+  const join = async (sensing: boolean) => {
+    const c = core!;
+    $("joinErr").textContent = "";
+    let ok = false;
+    if (sensing) {
+      // Ask in the same tap (iOS). No motion sensor → watch only, honestly labelled.
+      const perm = await askMotion();
+      if (perm !== "denied") ok = await onMotion((smp) => c.push(smp));
+      if (!ok) $("joinErr").textContent = perm === "denied" ? "Bewegungssensor nicht erlaubt – du schaust nur zu." : "Kein Bewegungssensor gefunden – du schaust nur zu.";
+    }
+    c.sensing = ok;
+    state.sensing = ok;
+    state.hasMe = ok;
+    show("joining");
+    $("joinStep").textContent = "Verbinde …";
+    try {
+      await c.connect();
+      $("joinStep").textContent = "Uhr wird synchronisiert …";
+      $("joinDetail").textContent = `über ${c.link.transport}`;
+      await c.start(openedAt);
+    } catch (e) {
+      show("consent");
+      $("joinErr").textContent = `Beitritt fehlgeschlagen: ${(e as Error).message}`;
+      return;
+    }
+    keepAwake();
+    show("gview");
+    setPocket(ok);
+  };
+  $("agree").onclick = () => void join(true);
+  $("watch").onclick = () => void join(false);
+}
+document.addEventListener("visibilitychange", () => {
+  if (!core) return;
+  const vis = document.visibilityState === "visible";
+  core.setVisible(vis);
+  if (vis && core.link.joined && core.sensing) {
+    $("hiddenNote").hidden = false;
+    setTimeout(() => ($("hiddenNote").hidden = true), 9000);
+  }
+});
+$("leave").onclick = async () => {
+  await core?.leave();
+  core = null;
+  state.live = false;
+  state.hasMe = false;
+  show("join");
+  $("codeErr").textContent = "Du bist raus – danke fürs Mittanzen!";
+};
+$("codeGo").onclick = async () => {
+  const code = normCode($<HTMLInputElement>("codeIn").value);
+  if (code.length !== 6) {
+    $("codeErr").textContent = "Der Code hat 6 Zeichen.";
+    return;
+  }
+  $("codeErr").textContent = "Suche Party …";
+  try {
+    const inv = await resolveCode(code, net);
+    history.replaceState(null, "", `?s=${inv.s}${net !== "auto" ? `&net=${net}` : ""}#k=${inv.k}`);
+    await goLive(inv.s, inv.k);
+  } catch (e) {
+    $("codeErr").textContent = (e as Error).message;
+  }
+};
+const sid = params.get("s");
+if (sid && hashK) void goLive(sid, hashK);
+else if (params.has("preview")) {
+  state.hasMe = true;
+  $("simpanel").hidden = false;
+  show("gview");
+} else show("join");
 requestAnimationFrame(frame);
 registerSW();
-(window as unknown as { __guest: unknown }).__guest = { state, dotsFor };
+(window as unknown as { __guest: unknown }).__guest = { state, dotsFor, core: () => core };

@@ -6,13 +6,13 @@
 <meta name="theme-color" content="#07061a" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" href="./icon-192.png" />
-<title>SCHWARM · KI-DJ (Phase 0)</title>
+<title>SCHWARM · KI-DJ (Phase 1)</title>
 </head>
 <body>
 <main class="app" id="app">
   <header class="top">
     <strong class="logo">SCHWARM</strong>
-    <span class="tag">Phase 0 · Testversion · Crowd simuliert</span>
+    <span class="tag" id="tag">Phase 1 · Testversion</span>
     <nav><a href="./test.html">Blindtest</a><a href="./guest.html">Teilnehmer-Ansicht</a></nav>
   </header>
   <section class="stage">
@@ -41,16 +41,64 @@
     <div class="row seg">
       <button class="btn small" id="modeManual" aria-pressed="true">Crowd: Regler</button>
       <button class="btn small" id="modeSim" aria-pressed="false">Crowd: Simulation</button>
+      <button class="btn small" id="modeLive" aria-pressed="false">Crowd: Live</button>
     </div>
-    <label class="slider">Crowd-Energie <output id="eOut">3,0</output>
+    <div class="row live-only">
+      <button class="btn small" id="openParty">QR · Party</button>
+      <button class="btn small" id="selfDance" aria-pressed="false">Ich tanze mit</button>
+      <button class="btn small" id="openTv">TV-Modus</button>
+    </div>
+    <div class="livestat live-only" id="liveStat" aria-live="polite">
+      <div><b id="lsN">0</b> zählen · <span id="lsJoined">0 verbunden</span></div>
+      <div id="lsVals">Energie – · Gleichtakt – · Beteiligung –</div>
+      <div class="dim" id="lsNet">Verbindung wird aufgebaut …</div>
+    </div>
+    <label class="slider sim-only">Crowd-Energie <output id="eOut">3,0</output>
       <input id="energy" type="range" min="0" max="10" step="0.1" value="3" /></label>
-    <label class="slider">Gleichtakt <output id="sOut">30 %</output>
+    <label class="slider sim-only">Gleichtakt <output id="sOut">30 %</output>
       <input id="sync" type="range" min="0" max="1" step="0.01" value="0.3" /></label>
-    <label class="slider">Anzahl Tänzer <output id="nOut">12</output>
+    <label class="slider sim-only">Anzahl Tänzer <output id="nOut">12</output>
       <input id="n" type="range" min="0" max="1" step="0.001" value="0.29" /></label>
     <p class="rule" id="rule"></p>
+    <div class="lock" id="lock" hidden>
+      <p><b>Du tanzt mit.</b> Die Steuerung ist gesperrt.</p>
+      <button class="btn hold" id="unlock"><i></i><span>Entsperren: 3 s halten</span></button>
+      <button class="btn" id="lockStop">■ Stop (Not-Aus)</button>
+    </div>
   </section>
 </main>
+<section class="overlay party" id="party" hidden aria-label="Party beitreten">
+  <div class="qr-box"><canvas id="qr" class="qr" aria-label="QR-Code zum Beitreten"></canvas></div>
+  <div class="party-side">
+    <h2>Mittanzen: QR scannen</h2>
+    <p class="code-l">oder Code eingeben auf <b id="guestHost">…/guest.html</b></p>
+    <p class="code" id="code">––– –––</p>
+    <p id="pGuests"><b>0</b> verbunden · 0 zählen</p>
+    <ul class="nets" id="pNets"></ul>
+    <div class="row">
+      <button class="btn small" id="tap">Mitklopfen (8×)</button>
+      <button class="btn small" id="pTv">TV-Modus</button>
+    </div>
+    <p class="dim" id="latTxt">Lautsprecher-Versatz: 0 ms</p>
+    <div class="row">
+      <button class="btn small" id="newParty">Neue Party</button>
+      <button class="btn small" id="closeParty">Zurück</button>
+    </div>
+    <p class="dim">Test-Prototyp: anonyme Kennzahlen, Ende-zu-Ende-verschlüsselt über einen öffentlichen Vermittler. <a href="./privacy.html">Datenschutz</a></p>
+  </div>
+</section>
+<section class="overlay tv" id="tv" hidden aria-label="TV-Modus">
+  <div class="tv-main">
+    <p class="tv-phase" id="tvPhase">Bereit</p>
+    <p class="tv-up" id="tvUp" hidden>PHONES UP!</p>
+    <div class="tv-meter"><i id="tvReady"></i></div>
+    <p class="tv-sub" id="tvSub">Drop-Bereitschaft</p>
+    <p class="tv-n" id="tvN">0 tanzen mit</p>
+  </div>
+  <div class="tv-qr"><canvas id="tvQr" class="qr small"></canvas><b id="tvCode">––– –––</b></div>
+  <button class="btn tv-exit" id="tvExit">Zurück</button>
+</section>
+<div class="flash" id="flash" aria-hidden="true"></div>
 <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

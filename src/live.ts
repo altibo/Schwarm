@@ -19,6 +19,10 @@ export class LiveEngine {
   running = false;
   ended = false;
   onBar: (s: Score) => void = () => {};
+  /** A bar was scheduled; `heard` is when it will be heard, on the shared wall clock (ms). */
+  onSchedule: (s: Score, heard: number) => void = () => {};
+  /** Speaker latency correction from the tap calibration (ms, + = later). */
+  latencyMs = Number(globalThis.localStorage?.getItem("schwarm.latency") ?? 0) || 0;
   onEnd: () => void = () => {};
   private lock: { release(): Promise<void> } | null = null;
   constructor(opts: SetOptions) {
@@ -74,6 +78,7 @@ export class LiveEngine {
       if (at < ctx.currentTime) this.lateBars++;
       scheduleBar(this.mix, score, Math.max(at, ctx.currentTime + 0.005));
       this.scheduled.push({ at, score });
+      this.onSchedule(score, this.ctxToWall(at));
     }
     while (this.scheduled.length && this.scheduled[0].at <= ctx.currentTime) {
       const s = this.scheduled.shift()!;
@@ -87,6 +92,17 @@ export class LiveEngine {
         this.onEnd();
       }, 4000);
     }
+  }
+  /** Audio-context time → wall clock (performance.timeOrigin + performance.now domain, ms) of the
+   * moment it leaves the speaker, incl. reported output latency and the tap calibration. */
+  ctxToWall(t: number) {
+    const ctx = this.ctx;
+    if (!ctx) return NaN;
+    const ts = ctx.getOutputTimestamp?.();
+    let perf: number;
+    if (ts && ts.performanceTime && ts.contextTime) perf = ts.performanceTime + (t - ts.contextTime) * 1000;
+    else perf = performance.now() + (t - ctx.currentTime) * 1000 + ((ctx.outputLatency || 0) + (ctx.baseLatency || 0)) * 1000;
+    return performance.timeOrigin + perf + this.latencyMs;
   }
   /** Seconds into the set that are audible right now. */
   get position() {

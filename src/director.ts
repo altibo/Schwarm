@@ -73,6 +73,8 @@ export interface BarPlan {
   variation: Variation;
   fatigue: number;
   dropQueued: boolean;
+  /** Type of the decided drop while a pre-drop runs (for the light command one bar ahead). */
+  nextDrop: DropType | null;
   seed: number;
 }
 export interface DirectorEvent {
@@ -230,6 +232,7 @@ export class Director {
       variation: { ...this.v, perc: { ...this.v.perc }, perc2: { ...this.v.perc2 } },
       fatigue: this.fatigue,
       dropQueued: this.forceQueued || this.pendingType !== null,
+      nextDrop: inPreDrop ? this.pendingType : null,
       seed: hash(this.seed, "bar", this.bar),
     };
     // Advance.

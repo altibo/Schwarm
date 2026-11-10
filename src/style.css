@@ -89,3 +89,50 @@ a { color: var(--accent); }
   * { transition: none !important; animation: none !important; }
 }
 .linkbtn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+/* --- Phase 1: live party ------------------------------------------------------------ */
+.live-only { display: none; }
+body.live .live-only { display: flex; }
+body.live .livestat.live-only { display: grid; }
+body.live .sim-only { display: none; }
+.livestat { gap: 2px; font-size: 12px; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; }
+.livestat b { font-size: 16px; color: #fff; text-shadow: 0 0 10px var(--accent); }
+.dim { color: var(--dim); font-size: 11px; }
+.controls { position: relative; }
+.lock { position: absolute; inset: 0; z-index: 5; display: grid; align-content: center; gap: 10px; padding: 14px; border-radius: 14px; background: rgba(7, 6, 26, 0.94); border: 1px solid hsla(var(--hue), 100%, 70%, 0.6); text-align: center; }
+.lock[hidden] { display: none; }
+.lock p { margin: 0; font-size: 14px; }
+.btn.hold { position: relative; overflow: hidden; }
+.btn.hold i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: hsla(var(--hue), 100%, 65%, 0.35); }
+.btn.hold span { position: relative; }
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(5, 4, 20, 0.97); padding: max(10px, env(safe-area-inset-top)) 14px 14px; overflow-y: auto; }
+.overlay[hidden] { display: none; }
+.party { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; justify-content: center; }
+.qr-box { display: grid; place-items: center; }
+.qr { width: min(86dvh, 46vw); height: min(86dvh, 46vw); border-radius: 14px; box-shadow: 0 0 40px hsla(var(--hue), 100%, 60%, 0.6); background: #fff; }
+.qr.small { width: 132px; height: 132px; box-shadow: 0 0 18px rgba(255, 255, 255, 0.4); }
+.party-side { display: grid; gap: 6px; max-width: 420px; }
+.party-side h2 { margin: 0; font-size: 20px; color: #fff; text-shadow: 0 0 14px var(--accent); }
+.party-side p { margin: 0; }
+.code-l { font-size: 12px; color: var(--dim); word-break: break-all; }
+.code { font-size: 40px; font-weight: 800; letter-spacing: 0.12em; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 0 18px var(--accent); }
+.nets { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; }
+.nets .ok { color: hsl(150, 80%, 65%); }
+.nets .off { color: var(--dim); }
+@media (orientation: portrait) {
+  .party { grid-template-columns: 1fr; justify-items: center; align-content: start; }
+  .qr { width: min(88vw, 52dvh); height: min(88vw, 52dvh); }
+}
+.tv { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px;
+  background: radial-gradient(80% 80% at 40% 45%, hsla(var(--hue), 95%, 45%, calc(0.55 + var(--pulse) * 0.2)), transparent 80%), #04030f; }
+.tv-main { text-align: center; display: grid; gap: 10px; justify-items: center; }
+.tv-phase { margin: 0; font-size: clamp(40px, 12vw, 140px); font-weight: 900; color: #fff; text-shadow: 0 0 40px hsla(var(--hue), 100%, 65%, 0.9); line-height: 1; }
+.tv-up { margin: 0; font-size: clamp(28px, 8vw, 90px); font-weight: 900; color: #fff; letter-spacing: 0.06em; text-shadow: 0 0 30px #fff; }
+.tv-up[hidden] { display: none; }
+.tv-meter { width: min(70vw, 900px); height: 22px; border-radius: 12px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.tv-meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, hsl(200, 100%, 60%), hsl(320, 100%, 68%), #fff); transition: width 0.5s; }
+.tv-sub, .tv-n { margin: 0; font-size: clamp(14px, 2.4vw, 28px); color: rgba(255, 255, 255, 0.85); }
+.tv-qr { display: grid; justify-items: center; gap: 6px; }
+.tv-qr b { font-size: 22px; letter-spacing: 0.12em; color: #fff; }
+.tv-exit { position: absolute; top: 10px; right: 10px; flex: none; padding: 0 16px; }
+@media (orientation: portrait) { .tv { grid-template-columns: 1fr; } }
+.flash { position: fixed; inset: 0; z-index: 30; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, #fff, hsl(var(--hue), 100%, 70%)); }

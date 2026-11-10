@@ -25,6 +25,7 @@
     "vite": "^7.3.8"
   },
   "dependencies": {
+    "peerjs": "^1.5.5",
     "qrcode-generator": "^2.0.4"
   }
 }

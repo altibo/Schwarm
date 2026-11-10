@@ -43,3 +43,23 @@
   .gauge { aspect-ratio: 1.6; }
   .gcurve { height: 70px; }
 }
+/* --- Phase 1: join, consent, light moment ------------------------------------------- */
+.gscreen { max-width: 520px; margin: 0 auto; min-height: 100dvh; padding: max(14px, env(safe-area-inset-top)) 16px 20px; display: grid; align-content: center; gap: 12px;
+  background: radial-gradient(90% 60% at 50% 20%, hsla(var(--hue), 90%, 40%, 0.3), transparent 75%), var(--bg); }
+.gscreen[hidden] { display: none; }
+.gscreen h1 { margin: 0; font-size: 26px; color: #fff; text-shadow: 0 0 16px var(--accent); }
+.gscreen p { margin: 0; }
+.consent { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; line-height: 1.4; }
+.btn.big { min-height: 56px; font-size: 18px; background: hsla(var(--hue), 90%, 50%, 0.4); border-color: hsla(var(--hue), 100%, 70%, 0.9); box-shadow: 0 0 16px hsla(var(--hue), 100%, 60%, 0.5); }
+.codein { display: grid; gap: 4px; font-size: 12px; color: var(--dim); }
+.codein input { min-height: 56px; font-size: 28px; letter-spacing: 0.2em; text-align: center; text-transform: uppercase; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06); color: #fff; }
+.err { color: hsl(40, 100%, 65%); font-size: 13px; min-height: 1em; }
+.note { margin: 0; font-size: 12px; color: hsl(40, 100%, 70%); background: hsla(40, 100%, 50%, 0.1); border: 1px solid hsla(40, 100%, 60%, 0.4); border-radius: 10px; padding: 6px 10px; }
+.note[hidden] { display: none; }
+.gstat { margin: 0; }
+.light { position: fixed; inset: 0; z-index: 15; pointer-events: none; display: grid; place-content: center; text-align: center; gap: 10px;
+  background: radial-gradient(70% 60% at 50% 45%, hsl(var(--hue), 100%, calc(52% + var(--pulse) * 8%)), hsl(var(--hue), 90%, 22%)); }
+.light[hidden] { display: none; }
+.light-up { margin: 0; font-size: 54px; font-weight: 900; color: #fff; letter-spacing: 0.04em; text-shadow: 0 0 30px #fff; }
+.light-sub { margin: 0; font-size: 16px; color: rgba(255, 255, 255, 0.92); }
+.btn.live-g[hidden] { display: none; }

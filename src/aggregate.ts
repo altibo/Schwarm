@@ -65,7 +65,7 @@ export interface PresenceOpts {
 }
 export class LiveAggregator {
   private bars = new Map<number, BarAcc>();
-  private seenAt = new Map<string, { t: number; visible: boolean; still: boolean }>();
+  private seenAt = new Map<string, { t: number; visible: boolean; still: boolean; counts: boolean }>();
   private streak = 0;
   private lastFinal = -1;
   /** Light moment: crowd energy is frozen (concept §3). */
@@ -75,9 +75,14 @@ export class LiveAggregator {
   constructor(o: PresenceOpts = {}) {
     this.windowMs = o.windowMs ?? 5000;
   }
-  /** Heartbeat or any message from a device. */
-  seen(id: string, t: number, visible = true, still = false) {
-    this.seenAt.set(id, { t, visible, still });
+  /** Heartbeat or any message from a device. `counts` = the device measures (not "watch only"). */
+  seen(id: string, t: number, visible = true, still = false, counts = true) {
+    this.seenAt.set(id, { t, visible, still, counts });
+  }
+  /** Joined, but not (yet) measuring: listed as connected, not in N. */
+  hello(id: string, t: number) {
+    const s = this.seenAt.get(id);
+    this.seenAt.set(id, { t, visible: true, still: false, counts: s?.counts ?? false });
   }
   leave(id: string) {
     this.seenAt.delete(id);
@@ -91,7 +96,7 @@ export class LiveAggregator {
     let n = 0;
     for (const [id, s] of this.seenAt) {
       if (t - s.t > 10 * 60000) this.seenAt.delete(id);
-      else if (t - s.t <= this.windowMs && s.visible && !s.still) n++;
+      else if (t - s.t <= this.windowMs && s.visible && !s.still && s.counts) n++;
     }
     return n;
   }
