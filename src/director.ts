@@ -184,7 +184,9 @@ export class Director {
       }
       // Decide two bars before the block ends whether the next one is the drop.
       if (this.sectionBar === BLOCK - 2 && this.preDropFrom < 0) {
-        if (ready >= 1 || this.buildBlock + 1 >= MAX_BUILD_BLOCKS) {
+        // Phones-up share U ≥ 50 % during the light moment shortens the build by one block.
+        const maxBlocks = MAX_BUILD_BLOCKS - (crowd.phonesUp !== undefined && crowd.phonesUp >= 0.5 ? 1 : 0);
+        if (ready >= 1 || this.buildBlock + 1 >= maxBlocks) {
           this.preDropFrom = this.bar;
           this.pendingType = ready >= 1 ? "freigeschaltet" : "rettung";
         }
@@ -311,7 +313,11 @@ export class Director {
         break;
     }
   }
-  private onPhrase(crowd: CrowdInput, soll: number, phase: CurvePhase, minute: number) {
+  private onPhrase(measured: CrowdInput, soll: number, phase: CurvePhase, minute: number) {
+    // Nobody counts (no guests, network down, master not dancing): follow the curve only.
+    const crowd = measured.n > 0 ? measured : { ...measured, energy: Math.max(0, soll - leadDelta(phase)) };
+    // Without measurement a move cannot be judged: it simply ends (no success, no failure).
+    if (measured.n <= 0 && this.move && this.phraseIndex - this.move.phrase >= 2) this.move = null;
     const phraseMin = (PHRASE * barSeconds(this.bpm)) / 60;
     // Fatigue: rises for every phrase above level 6, slowly recovers at low levels.
     if (this.level > 6) {

@@ -23,5 +23,8 @@
     "typescript": "5.9",
     "typescript-eslint": "^8.72.2",
     "vite": "^7.3.8"
+  },
+  "dependencies": {
+    "qrcode-generator": "^2.0.4"
   }
 }

@@ -11,7 +11,18 @@ export interface CrowdInput {
   participation: number;
   /** Number of counting participants (≥ 1; the master counts when it dances). */
   n: number;
+  // --- only present for measured (live) input; the simulation leaves them out ---------------
+  /** Reports that went into this bar's sync estimate (sample size m ≤ N with sampling). */
+  reports?: number;
+  /** Median of the devices' own phase stability Rᵢ. */
+  stability?: number;
+  /** Solo: consecutive bars with Rᵢ ≥ 0.6. */
+  streak?: number;
+  /** Phones-up share U during a light moment. */
+  phonesUp?: number;
 }
+/** Solo unlock needs Rᵢ ≥ 0.6 over 2 blocks (concept §7, solo mode). */
+export const SOLO_STREAK = 16;
 // Streaming aggregate over participant summaries: running sums only, no per-person list.
 export class CrowdAggregate {
   private w = 0;
@@ -92,8 +103,14 @@ export const formatN = (n: number) => (n >= 1000 ? `${(n / 1000).toLocaleString(
 export function readiness(c: CrowdInput): number {
   if (c.n < 1) return 0;
   const r = unlockRule(c.n);
-  const parts = [c.sync / r.syncMin, c.energy / r.energyMin];
+  let syncMin = r.syncMin;
+  // Measured input: the sync value is the chance-corrected S of m reports; the Rayleigh test
+  // (p < 0.05 ⇔ m·R² ≥ 3 ⇔ S ≥ √(2/(m−1))) must hold on top of the musical threshold.
+  if (c.reports !== undefined && r.mode !== "solo") syncMin = Math.max(syncMin, c.reports > 1 ? Math.sqrt(2 / (c.reports - 1)) : 1);
+  const parts = [c.sync / syncMin, c.energy / r.energyMin];
   if (r.participationMin > 0) parts.push(c.participation / r.participationMin);
+  if (c.stability !== undefined && r.mode !== "solo") parts.push(c.stability / 0.5);
+  if (c.streak !== undefined && r.mode === "solo") parts.push(c.streak / SOLO_STREAK);
   return clamp(Math.min(...parts));
 }
 export const unlocked = (c: CrowdInput) => readiness(c) >= 1;
