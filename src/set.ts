@@ -1,5 +1,5 @@
 // One running set: director + crowd source (simulation or manual sliders) → bar scores.
-import { Director, type BarPlan } from "./director.ts";
+import { Director, type BarPlan, type DirectorSnapshot } from "./director.ts";
 import { CrowdSim, type CrowdInput } from "./crowd.ts";
 import { arrange, type Score } from "./arranger.ts";
 import { presetById } from "./curve.ts";
@@ -15,7 +15,7 @@ export interface SetOptions {
   n?: number;
 }
 export class SetRunner {
-  readonly director: Director;
+  director: Director;
   readonly sim: CrowdSim;
   mode: CrowdMode;
   manual: CrowdInput = { energy: 3, sync: 0.3, participation: 0.8, n: 12 };
@@ -32,6 +32,10 @@ export class SetRunner {
     this.manual.n = o.n ?? 12;
     this.coin = rng(hash("moves", o.seed));
     this.last = this.sim.step(1, "groove", 0);
+  }
+  /** Master reload: continue the set from a persisted director snapshot. */
+  resume(snap: DirectorSnapshot) {
+    this.director = Director.restore(snap, presetById(snap.preset));
   }
   get finished() {
     return this.director.finished;

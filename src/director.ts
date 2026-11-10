@@ -4,7 +4,7 @@
 // fallback. Pure and deterministic: one call per bar, no wall clock, no per-person data.
 import { type CurvePreset, type CurvePhase, sollAt, curvePhase, leadDelta, exploreRate } from "./curve.ts";
 import { type CrowdInput, readiness, unlockRule, type UnlockMode } from "./crowd.ts";
-import { rng, hash, clamp, pickFresh, type Rng } from "./rng.ts";
+import { srng, hash, clamp, pickFresh, type SRng } from "./rng.ts";
 import { PACK } from "./pack/techno.ts";
 
 export const PHRASE = 16;
@@ -83,13 +83,19 @@ export interface DirectorEvent {
   kind: "breakdown" | "build" | "drop" | "move" | "move-ok" | "move-fail" | "anchor" | "level";
   detail: string;
 }
+export interface DirectorSnapshot {
+  v: 1;
+  preset: string;
+  rng: number;
+  state: Record<string, unknown>;
+}
 export const barSeconds = (bpm: number) => (240 / bpm);
 export const levelBpm = (level: number) => BPM_MIN + ((level - 1) * (BPM_MAX - BPM_MIN)) / 9;
 
 export class Director {
   readonly preset: CurvePreset;
   readonly seed: number;
-  private r: Rng;
+  private r: SRng;
   bar = 0;
   time = 0;
   bpm = BPM_MIN;
@@ -125,7 +131,7 @@ export class Director {
   constructor(preset: CurvePreset, seed = 1) {
     this.preset = preset;
     this.seed = seed;
-    this.r = rng(hash("director", seed));
+    this.r = srng(hash("director", seed));
     this.nextMandatory = 15 + this.r() * 10;
     this.v = this.anchorVariation(0);
     this.level = Math.max(1, Math.floor(sollAt(preset, 0) - 1));
@@ -135,6 +141,19 @@ export class Director {
   }
   get finished() {
     return this.minute >= this.preset.minutes;
+  }
+  /** Plain-data copy of the whole state (JSON-safe) – persisted so a master reload can resume. */
+  snapshot(): DirectorSnapshot {
+    const o: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(this)) if (k !== "preset" && k !== "r") o[k] = v;
+    return JSON.parse(JSON.stringify({ v: 1, preset: this.preset.id, rng: this.r.state, state: o })) as DirectorSnapshot;
+  }
+  /** Continue exactly where a snapshot left off (same preset/seed → identical continuation). */
+  static restore(snap: DirectorSnapshot, preset: CurvePreset): Director {
+    const d = new Director(preset, Number(snap.state.seed) || 1);
+    Object.assign(d, JSON.parse(JSON.stringify(snap.state)));
+    d.r.state = snap.rng >>> 0;
+    return d;
   }
   /** "Drop jetzt erzwingen": a one-bar pre-drop fill, then the drop on the next one. */
   forceDrop() {

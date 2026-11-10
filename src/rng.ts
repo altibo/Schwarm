@@ -23,6 +23,22 @@ export function rng(seed: number): Rng {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+/** Same generator as rng(), with its state readable/settable (for snapshots / resume). */
+export interface SRng {
+  (): number;
+  state: number;
+}
+export function srng(seed: number): SRng {
+  const f = (() => {
+    f.state = (f.state + 0x6d2b79f5) >>> 0;
+    let t = f.state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }) as SRng;
+  f.state = seed >>> 0 || 0x2545f491;
+  return f;
+}
 export const pick = <T>(r: Rng, xs: readonly T[]): T => xs[Math.floor(r() * xs.length) % xs.length];
 export const clamp = (x: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, x));
 // Pick an index, avoiding the most recent ones where possible.
