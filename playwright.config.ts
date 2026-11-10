@@ -12,7 +12,7 @@ export default defineConfig({
   webServer: process.env.SCHWARM_URL
     ? undefined
     : {
-        command: "npm run build && npx vite preview --port 4180 --strictPort",
+        command: "npm run build && npx vite preview --host 127.0.0.1 --port 4180 --strictPort",
         url: "http://127.0.0.1:4180/",
         reuseExistingServer: true,
         timeout: 120000,
