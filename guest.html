@@ -6,23 +6,58 @@
 <meta name="theme-color" content="#000000" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" href="./icon-192.png" />
-<title>SCHWARM · Teilnehmer-Ansicht (Vorschau)</title>
-  <script type="module" crossorigin src="./assets/guest-BIHJMljI.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/sw-register-DSAZ5JrD.js">
-  <link rel="modulepreload" crossorigin href="./assets/curve-view-LnU3mZz1.js">
-  <link rel="stylesheet" crossorigin href="./assets/sw-register-BC6oRj2a.css">
-  <link rel="stylesheet" crossorigin href="./assets/guest-CvkSngEJ.css">
+<title>SCHWARM · Mittanzen</title>
+  <script type="module" crossorigin src="./assets/guest-DiyJiZhQ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/rng-Ddsfu-js.js">
+  <link rel="modulepreload" crossorigin href="./assets/sense-B3R8jdWl.js">
+  <link rel="modulepreload" crossorigin href="./assets/guest-core-Bp2nNiNy.js">
+  <link rel="modulepreload" crossorigin href="./assets/sw-register-D1QCJn2x.js">
+  <link rel="modulepreload" crossorigin href="./assets/motion-B46TpAYF.js">
+  <link rel="stylesheet" crossorigin href="./assets/rng-yEhPTpPM.css">
+  <link rel="stylesheet" crossorigin href="./assets/guest-core-BPR8SRc2.css">
 </head>
 <body class="guest">
+<section class="gscreen" id="join" hidden>
+  <strong class="logo">SCHWARM</strong>
+  <h1>Party beitreten</h1>
+  <p>Scanne den QR-Code am Fernseher oder gib den Code ein.</p>
+  <label class="codein">Code<input id="codeIn" autocomplete="off" autocapitalize="characters" inputmode="text" maxlength="9" placeholder="ABC 123" /></label>
+  <button class="btn big" id="codeGo">Beitreten</button>
+  <p class="err" id="codeErr" role="alert"></p>
+  <a class="btn small linkbtn" href="./guest.html?preview">Vorschau ansehen (simuliert)</a>
+</section>
+<section class="gscreen" id="consent" hidden>
+  <strong class="logo">SCHWARM</strong>
+  <h1>Mittanzen?</h1>
+  <ul class="consent">
+    <li><b>Gemessen wird nur die Bewegung deines Handys</b> (Beschleunigung). Ausgewertet wird sie auf deinem Handy; pro Takt gehen nur wenige Zahlen raus (Energie, Takt, Lage).</li>
+    <li><b>Anonym:</b> zufällige Sitzungs-ID, kein Konto, <b>keine Kamera, kein Mikrofon</b>, kein Standort. Ende-zu-Ende-verschlüsselt, nichts wird gespeichert.</li>
+    <li>Verantwortlich ist der Gastgeber dieser Party. Mitmachen ist freiwillig, <b>„Raus“ geht jederzeit</b>.</li>
+  </ul>
+  <a class="btn small linkbtn" href="./privacy.html">Mehr zum Datenschutz</a>
+  <p class="dim">Testversion (Prototyp). Gezählt wird nur, solange diese Seite offen und sichtbar ist.</p>
+  <button class="btn big" id="agree">Mitmachen</button>
+  <button class="btn small" id="watch">Nur zuschauen (ohne Messung)</button>
+  <p class="err" id="joinErr" role="alert"></p>
+</section>
+<section class="gscreen" id="joining" hidden>
+  <strong class="logo">SCHWARM</strong>
+  <h1 id="joinStep">Verbinde …</h1>
+  <p class="dim" id="joinDetail">Sichere Verbindung zum Master</p>
+</section>
 <div class="pocket" id="pocket" hidden>
-  <p class="pocket-txt">SCHWARM läuft · Taschenmodus<br /><small>Schwarzer Bildschirm spart Akku</small></p>
-  <button class="btn ghost" id="showStats">Statistik zeigen</button>
+  <p class="pocket-txt">SCHWARM läuft · Taschenmodus<br /><small>Schwarzer Bildschirm spart Akku · Touch gesperrt</small></p>
+  <button class="btn ghost hold" id="showStats"><i></i><span>Statistik: 2 s halten</span></button>
+</div>
+<div class="light" id="light" hidden aria-live="assertive">
+  <p class="light-up" id="lightUp">PHONES UP!</p>
+  <p class="light-sub" id="lightSub">Handy hoch – gleich kommt der Drop</p>
 </div>
 <main class="gview" id="gview">
   <header class="gtop">
     <strong class="logo">SCHWARM</strong>
     <span class="chip" id="gphase">Aufbau</span>
-    <span class="tag sim">Vorschau · simuliert</span>
+    <span class="tag sim" id="gtag">Vorschau · simuliert</span>
   </header>
   <section class="swarm-wrap">
     <canvas id="swarm" class="swarm" aria-label="Schwarm der verbundenen Tänzer"></canvas>
@@ -48,9 +83,11 @@
   <section class="mini-curve">
     <canvas id="gCurve" class="gcurve" aria-label="Energiekurve der Nacht"></canvas>
   </section>
-  <div class="row"><button class="btn" id="toPocket">Taschenmodus</button></div>
+  <p class="note" id="hiddenNote" hidden>Während die Seite verdeckt war, hast du nicht gezählt – das ist okay, du giltst nicht als müde.</p>
+  <p class="dim gstat" id="gStat"></p>
+  <div class="row"><button class="btn" id="toPocket">Taschenmodus</button><button class="btn live-g" id="leave" hidden>Raus</button></div>
 </main>
-<section class="simpanel" id="simpanel">
+<section class="simpanel" id="simpanel" hidden>
   <h2>Simulation (nur für die Vorschau, später speist das der Relay)</h2>
   <label class="slider">Anzahl Tänzer <output id="sNo">128</output><input id="sN" type="range" min="0" max="1" step="0.001" /></label>
   <label class="slider">Crowd-Energie <output id="sEo">6,5</output><input id="sE" type="range" min="0" max="10" step="0.1" value="6.5" /></label>
@@ -69,5 +106,6 @@
   <p class="hint">Im echten Betrieb erkennt das Handy über die Schwerkraftrichtung, ob es in der Tasche steckt. Diese Vorschau misst nichts.</p>
   <div class="row"><a class="btn small linkbtn" href="./">Zur Hauptansicht</a></div>
 </section>
+<div class="flash" id="flash" aria-hidden="true"></div>
 </body>
 </html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#07061a" />
+<title>SCHWARM · Datenschutz (Testversion)</title>
+<style>
+  body { margin: 0; background: #07061a; color: #eef0ff; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 18px 16px 40px; }
+  h1 { font-size: 24px; margin: 0 0 8px; } h2 { font-size: 17px; margin: 18px 0 4px; }
+  a { color: hsl(280, 95%, 74%); display: inline-flex; align-items: center; min-height: 44px; }
+  .dim { color: rgba(220, 225, 255, 0.72); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Datenschutz bei SCHWARM</h1>
+  <p class="dim">Testversion (Prototyp, Phase 1). Keine Rechtsberatung; vor einem öffentlichen Einsatz wird das rechtlich geprüft.</p>
+  <h2>Verantwortlich</h2>
+  <p>Der Gastgeber der Party, der die Sitzung am Master-Gerät gestartet hat.</p>
+  <h2>Was gemessen wird</h2>
+  <p>Nur die <b>Bewegung deines Handys</b> (Beschleunigungssensor, DeviceMotion), solange diese Seite offen und sichtbar ist. Die Rohdaten bleiben auf deinem Handy. Einmal pro Takt (etwa alle 2 Sekunden) werden wenige Kennzahlen gesendet: Energie (0–1), Takt-Phase, Takt-Stabilität, Datenqualität und die Lage (Tasche / Hand / hoch) – zusammen mit einer <b>zufälligen Sitzungs-ID</b>.</p>
+  <p><b>Keine Kamera, kein Mikrofon, kein Standort, kein Konto, kein Tracking, keine Cookies.</b></p>
+  <h2>Wohin die Daten gehen</h2>
+  <p>Die Kennzahlen gehen an das Master-Gerät des Gastgebers. Für die Vermittlung nutzt der Prototyp einen <b>öffentlichen Vermittler</b> (MQTT-Broker, z. B. shiftr.io, HiveMQ oder EMQX, oder für WebRTC den PeerJS-Signalisierungsdienst). Alle Nachrichten sind <b>Ende-zu-Ende-verschlüsselt</b> (AES-GCM); der Schlüssel steht nur im QR-Link hinter dem „#“ und wird nie an einen Server gesendet. Der Vermittler sieht nur verschlüsselte Daten, eine zufällige Sitzungskennung und – technisch bedingt – deine IP-Adresse.</p>
+  <h2>Speicherung</h2>
+  <p>Der Master verarbeitet die Kennzahlen nur als <b>Gruppenwerte</b> (Anzahl, Energie, Gleichtakt) für die Musik und speichert keine Werte einzelner Gäste. Nach der Party bleibt nichts Personenbezogenes übrig.</p>
+  <h2>Freiwillig, jederzeit raus</h2>
+  <p>Mitmachen ist freiwillig. „Raus“ beendet die Messung sofort; Schließen der Seite ebenso. Ist die Seite verdeckt oder das Handy gesperrt, misst sie nicht und du zählst nicht – du giltst dann auch nicht als müde.</p>
+  <p><a href="./guest.html">Zurück</a></p>
+</main>
+</body>
+</html>
