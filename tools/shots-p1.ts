@@ -1,0 +1,65 @@
+// Phase 1 screenshots: master with QR, guest consent, guest live stats, phones up + flash, TV mode.
+//   node tools/shots-p1.ts <baseUrl> <outDir>      (local transport, all in one browser profile)
+import { chromium, type Page } from "@playwright/test";
+import { FAKE_MOTION } from "../tests/browser/fake-motion.ts";
+import { mkdirSync } from "node:fs";
+const [base = "http://127.0.0.1:4180/", out = "/workspace/schwarm/shots/p1"] = process.argv.slice(2);
+mkdirSync(out, { recursive: true });
+const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
+const ctx = await browser.newContext({ deviceScaleFactor: 2 });
+type W = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+const shot = (p: Page, name: string) => p.screenshot({ path: `${out}/${name}.png` });
+const m = await ctx.newPage();
+await m.setViewportSize({ width: 844, height: 390 });
+await m.goto(`${base}?crowd=live&net=local`);
+await m.waitForFunction(() => (window as unknown as W).__schwarm.state().party?.nets?.length > 0);
+await m.waitForTimeout(500);
+await shot(m, "master-qr-844x390");
+await m.setViewportSize({ width: 390, height: 844 });
+await m.waitForTimeout(300);
+await shot(m, "master-qr-390x844");
+await m.setViewportSize({ width: 844, height: 390 });
+await m.click("#closeParty");
+await m.click("#play");
+const url: string = await m.evaluate(() => (window as unknown as W).__schwarm.state().party.url);
+// A crowd of 11 simulated guests + one "real" guest page with fake DeviceMotion.
+const s = await ctx.newPage();
+await s.goto(url.replace("guest.html", "swarm.html").replace("#", "&n=11#"));
+const g = await ctx.newPage();
+await g.setViewportSize({ width: 390, height: 844 });
+await g.addInitScript(FAKE_MOTION);
+await g.goto(url);
+await g.waitForSelector("#consent:not([hidden])");
+await shot(g, "guest-consent-390x844");
+await g.evaluate(() => (window as unknown as W).__dance({ amp: 4.5, offset: 0.1 }));
+await g.click("#agree");
+await g.waitForSelector("#pocket:not([hidden])", { timeout: 20000 });
+await shot(g, "guest-pocket-390x844");
+const box = (await g.locator("#showStats").boundingBox())!;
+await g.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+await g.mouse.down();
+await g.waitForTimeout(2300);
+await g.mouse.up();
+await m.waitForTimeout(40000);
+await shot(g, "guest-stats-live-390x844");
+await g.setViewportSize({ width: 844, height: 390 });
+await g.waitForTimeout(800);
+await shot(g, "guest-stats-live-844x390");
+await g.setViewportSize({ width: 390, height: 844 });
+await shot(m, "master-live-844x390");
+// Phones up, then the drop: flash on the one.
+await m.evaluate(() => (window as unknown as W).__schwarm.party().startLightMoment());
+await m.click("#drop");
+await g.waitForFunction(() => document.getElementById("lightUp")?.textContent === "PHONES UP!", null, { timeout: 15000 });
+await g.waitForTimeout(300);
+await shot(g, "guest-phones-up-390x844");
+await m.click("#openParty");
+await m.click("#pTv");
+await m.waitForTimeout(300);
+await shot(m, "master-tv-phones-up-844x390");
+await g.waitForFunction(() => (window as unknown as W).__guest.flashLog.length > 0, null, { timeout: 15000 });
+await shot(g, "guest-flash-390x844");
+await m.waitForFunction(() => Number(getComputedStyle(document.getElementById("flash")!).opacity) > 0.2, null, { timeout: 5000 }).catch(() => {});
+await shot(m, "master-tv-flash-844x390");
+await browser.close();
+console.log("p1 shots done");

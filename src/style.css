@@ -104,7 +104,7 @@ body.live .sim-only { display: none; }
 .btn.hold { position: relative; overflow: hidden; }
 .btn.hold i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: hsla(var(--hue), 100%, 65%, 0.35); }
 .btn.hold span { position: relative; }
-.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(5, 4, 20, 0.97); padding: max(10px, env(safe-area-inset-top)) 14px 14px; overflow-y: auto; }
+.overlay { position: fixed; inset: 0; z-index: 20; background: #05040f; padding: max(10px, env(safe-area-inset-top)) 14px 14px; overflow-y: auto; }
 .overlay[hidden] { display: none; }
 .party { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; justify-content: center; }
 .qr-box { display: grid; place-items: center; }
