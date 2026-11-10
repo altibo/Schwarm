@@ -15,6 +15,14 @@ test("N from 1 to 5000: solo text, log-scaled dots; pocket mode is black, Statis
   await page.locator("#sN").fill("0");
   await expect(page.locator("#gNtxt")).toHaveText("Solo: nur du tanzt");
   await expect(page.locator("#gRuleN")).toContainText("Solo");
+  // solo: readiness follows MY beat stability, not the crowd sync slider
+  await page.click("#sPhase button[data-v='Build-up']");
+  await page.locator("#sS").fill("0.95");
+  await page.locator("#sMe").fill("8");
+  await page.locator("#sMs").fill("0.45");
+  await expect(page.locator("#gReadyTxt")).not.toHaveText("frei");
+  await page.locator("#sMs").fill("0.8");
+  await expect(page.locator("#gReadyTxt")).toHaveText("frei");
   await page.locator("#sN").fill("1");
   await expect(page.locator("#gN")).toHaveText("5 Tsd.");
   await expect(page.locator("#gScale")).toContainText("1 Punkt ≈");

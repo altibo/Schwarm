@@ -15,6 +15,9 @@ const fmt = (x: number, d = 1) => x.toLocaleString("de-DE", { minimumFractionDig
 const MAX_DOTS = 420;
 const r = rng(77);
 const dots = Array.from({ length: MAX_DOTS }, (_, i) => ({ a: (i * 2.399963) % (Math.PI * 2), off: r() * 2 - 1, ph: r(), sp: 0.6 + r() * 0.8, sz: 0.7 + r() * 0.6 }));
+// N = 1: the crowd *is* me, so crowd energy/sync follow my own values.
+const effE = () => (state.n <= 1 ? state.myEnergy : state.energy);
+const effS = () => (state.n <= 1 ? state.myStab : state.sync);
 /** Dots shown for N dancers: 1:1 up to 150, then logarithmic so 1000+ still reads as a swarm. */
 export const dotsFor = (n: number) => (n <= 150 ? n : Math.min(MAX_DOTS, Math.round(150 + 110 * Math.log10(n / 150))));
 let sprite: HTMLCanvasElement | null = null;
@@ -50,22 +53,22 @@ function drawSwarm(now: number, beat: number, motion: boolean) {
   const n = state.n;
   const count = dotsFor(n);
   const R = Math.min(w, h) * (0.24 + 0.14 * Math.min(1, Math.log10(Math.max(1, n)) / 3.3));
-  const hue = levelHue(Math.max(1, Math.round(state.energy)));
+  const hue = levelHue(Math.max(1, Math.round(effE())));
   const pulse = motion ? Math.exp(-beat * 5) : 0;
   // sync ring: brighter and tighter with more Gleichtakt; pulses on the beat
   g.beginPath();
-  g.arc(cx, cy, R * (1 + pulse * 0.04 * state.sync), 0, Math.PI * 2);
-  g.strokeStyle = `hsla(${hue}, 100%, 70%, ${0.15 + state.sync * 0.6})`;
-  g.lineWidth = 2 + state.sync * 4;
+  g.arc(cx, cy, R * (1 + pulse * 0.04 * effS()), 0, Math.PI * 2);
+  g.strokeStyle = `hsla(${hue}, 100%, 70%, ${0.15 + effS() * 0.6})`;
+  g.lineWidth = 2 + effS() * 4;
   g.shadowColor = `hsla(${hue}, 100%, 65%, 0.9)`;
-  g.shadowBlur = 12 + pulse * 18 * state.sync;
+  g.shadowBlur = 12 + pulse * 18 * effS();
   g.stroke();
   g.shadowBlur = 0;
   g.globalCompositeOperation = "lighter";
-  if (motion) rot += 0.0009 * (0.3 + state.energy / 10) * 16;
+  if (motion) rot += 0.0009 * (0.3 + effE() / 10) * 16;
   for (let i = 0; i < count; i++) {
     const d = dots[i];
-    const inSync = i / Math.max(1, count) < state.sync;
+    const inSync = i / Math.max(1, count) < effS();
     const own = motion ? Math.exp(-(((beat + d.ph) % 1) * 5)) : 0;
     const bump = inSync ? pulse : own;
     const spread = inSync ? 0.06 : 0.55;
@@ -143,9 +146,12 @@ function gauge(id: string, value: number, max: number, label: string, hue: numbe
 }
 // --- UI state ----------------------------------------------------------------------------
 function update() {
-  const crowd = { energy: state.energy, sync: state.sync, participation: 0.8, n: state.n };
+    const solo = state.n <= 1;
+  const cE = effE();
+  const cS = effS();
+  const crowd = { energy: cE, sync: cS, participation: solo ? 1 : 0.8, n: state.n };
   const ready = state.phase === "Drop" || state.phase === "Peak" ? 1 : readiness(crowd);
-  const hue = levelHue(state.phase === "Breakdown" ? 1 : Math.max(1, Math.round(state.energy)));
+  const hue = levelHue(state.phase === "Breakdown" ? 1 : Math.max(1, Math.round(effE())));
   root.style.setProperty("--hue", String(hue));
   $("gphase").textContent = state.phase;
   $("gN").textContent = formatN(state.n);
@@ -170,8 +176,8 @@ function update() {
         ? "Durchatmen – gleich baut es sich wieder auf."
         : "Weiter so!";
   $("gRuleN").textContent = `Freigabe-Regel · ${rule.text}`;
-  gauge("gEnergy", state.energy, 10, fmt(state.energy), hue);
-  gauge("gSync", state.sync, 1, `${Math.round(state.sync * 100)}%`, 190);
+  gauge("gEnergy", cE, 10, fmt(cE), hue);
+  gauge("gSync", cS, 1, `${Math.round(cS * 100)}%`, 190);
   const preset = presetById("1h");
   const hist: CurvePoint[] = [];
   for (let t = 0; t <= state.minute * 60; t += 30) hist.push({ t, level: Math.max(1, Math.round(Math.min(10, 2 + (t / 60) * 0.25))), ist: Math.min(10, 1.5 + (t / 60) * 0.24), section: "groove", drop: null });
