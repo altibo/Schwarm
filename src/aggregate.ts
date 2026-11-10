@@ -142,7 +142,7 @@ export class LiveAggregator {
     const E = m ? trimmedMean(a.eW, a.eWE, 0.1) * 10 : 0;
     const medR = m ? median(a.rCount, a.rSum) : 0;
     if (n === 1 && m === 1) this.streak = a.bestR >= 0.6 ? this.streak + 1 : 0;
-    else if (m !== 1) this.streak = 0;
+    else if (m > 1 || n !== 1) this.streak = 0; // one missing/late report (m = 0) only pauses the solo streak
     if (m) this.lastE = E;
     return {
       bar,

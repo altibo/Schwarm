@@ -83,6 +83,16 @@ test("solo: the single dancer's Rᵢ is the sync; unlock needs Rᵢ ≥ 0.6 for 
   agg.add(pkt("me", 17, { R: 0.3 }), 17000);
   assert.ok(readiness(toCrowd(agg.finalize(17, 17000))) < 0.6);
 });
+test("solo: one missing report (packet loss, late) pauses the streak instead of resetting it", () => {
+  const agg = new LiveAggregator();
+  let c = toCrowd(agg.finalize(0, 0));
+  for (let b = 1; b <= 17; b++) {
+    if (b !== 9) agg.add(pkt("me", b, { R: 0.7, e: 0.7 }), b * 1000);
+    c = toCrowd(agg.finalize(b, b * 1000));
+  }
+  assert.equal(c.n, 1);
+  assert.equal(readiness(c), 1);
+});
 test("light moment freezes E", () => {
   const agg = new LiveAggregator();
   barOf(5, () => ({ e: 0.5 }), 1, agg);
