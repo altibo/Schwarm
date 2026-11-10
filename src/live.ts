@@ -4,6 +4,7 @@ import { SetRunner, type SetOptions } from "./set.ts";
 import type { Score } from "./arranger.ts";
 import { loadLibrary } from "./audio/samples.ts";
 import { createMix, scheduleBar, type Mix } from "./audio/mix.ts";
+import { loadProfile } from "./profile.ts";
 export class LiveEngine {
   ctx: AudioContext | null = null;
   mix: Mix | null = null;
@@ -22,7 +23,7 @@ export class LiveEngine {
   /** A bar was scheduled; `heard` is when it will be heard, on the shared wall clock (ms). */
   onSchedule: (s: Score, heard: number) => void = () => {};
   /** Speaker latency correction from the tap calibration (ms, + = later). */
-  latencyMs = Number(globalThis.localStorage?.getItem("schwarm.latency") ?? 0) || 0;
+  latencyMs = loadProfile().speakerMs;
   onEnd: () => void = () => {};
   private lock: { release(): Promise<void> } | null = null;
   constructor(opts: SetOptions) {
@@ -35,15 +36,19 @@ export class LiveEngine {
     this.scheduled = [];
     this.ended = false;
   }
-  /** Must be called from a user gesture (tap) so mobile browsers allow audio. */
-  async start() {
-    if (this.running) return;
+  /** Create/resume the AudioContext synchronously inside a user gesture (iOS needs that). */
+  prime(): AudioContext {
     if (!this.ctx) {
       const C = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new C({ latencyHint: "playback" });
     }
-    const ctx = this.ctx;
-    void ctx.resume();
+    void this.ctx.resume();
+    return this.ctx;
+  }
+  /** Must be called from a user gesture (tap) so mobile browsers allow audio. */
+  async start() {
+    if (this.running) return;
+    const ctx = this.prime();
     const lib = await loadLibrary(ctx, import.meta.env.BASE_URL);
     this.master = ctx.createGain();
     this.analyser = ctx.createAnalyser();

@@ -33,7 +33,7 @@ a { color: var(--accent); }
 .logo { letter-spacing: 0.2em; font-size: 15px; color: #fff; text-shadow: 0 0 12px var(--accent); }
 .tag { font-size: 11px; color: var(--dim); border: 1px solid var(--line); padding: 2px 8px; border-radius: 99px; }
 .top nav { margin-left: auto; display: flex; gap: 4px; }
-.top nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; font-size: 13px; text-decoration: none; border-radius: 10px; }
+.top nav a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 10px; font-size: 13px; text-decoration: none; border-radius: 10px; }
 .top nav a:hover { background: var(--panel); }
 .stage { min-width: 0; display: grid; grid-template-rows: auto 1fr auto; min-height: 0; gap: 4px; }
 .status { display: flex; align-items: center; gap: 12px; }
@@ -136,3 +136,28 @@ body.live .sim-only { display: none; }
 .tv-exit { position: absolute; top: 10px; right: 10px; flex: none; padding: 0 16px; }
 @media (orientation: portrait) { .tv { grid-template-columns: 1fr; } }
 .flash { position: fixed; inset: 0; z-index: 30; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, #fff, hsl(var(--hue), 100%, 70%)); }
+/* --- Phase 2: setup profile, TV calibration, mic, resume --- */
+.prof { font-size: 12px; color: hsl(150, 80%, 70%); }
+.prof.none { color: var(--dim); }
+.party-side .btn.play { min-height: 48px; }
+.tv { background: radial-gradient(120% 90% at 50% 45%, hsla(var(--tvhue, 215), 95%, 50%, var(--tvglow, 0.25)), #020208 75%); }
+.tvcal { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; background: #000; }
+.tvcal-flash { display: grid; place-content: center; text-align: center; border-radius: 18px; border: 1px solid var(--line); min-height: 60dvh; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.tvcal-flash.on { background: #fff; color: #000; }
+.tvcal-big { font-size: clamp(18px, 3.4vw, 34px); font-weight: 800; margin: 0 12px; }
+.tvcal-sub { font-size: 13px; color: var(--dim); margin: 8px 12px 0; }
+.tvcal-flash.on .tvcal-sub { color: #333; }
+.tvcal-side { display: grid; gap: 8px; align-content: start; }
+.tvcal-side h2, .mic-box h2 { margin: 0; font-size: 18px; color: #fff; }
+.tvcal-side p, .mic-box p { margin: 0; }
+.hint-tv { font-size: 13px; border: 1px solid var(--amber); border-radius: 10px; padding: 6px 8px; color: #fff; }
+@media (orientation: portrait) { .tvcal { grid-template-columns: 1fr; } .tvcal-flash { min-height: 40dvh; } }
+.mic { display: grid; place-items: start center; }
+.mic-box { max-width: 560px; display: grid; gap: 10px; font-size: 13px; }
+.warn-bt { border: 1px solid var(--amber); border-radius: 10px; padding: 6px 8px; }
+.mic-res { min-height: 2.6em; font-size: 14px; color: #fff; }
+.mic-res.bad { color: var(--amber); }
+.resume { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(10px, env(safe-area-inset-bottom)); z-index: 25; width: min(520px, calc(100vw - 20px));
+  background: #0d0b24; border: 1px solid hsla(var(--hue), 100%, 70%, 0.8); border-radius: 16px; padding: 10px 12px; box-shadow: 0 0 30px hsla(var(--hue), 100%, 60%, 0.45); display: grid; gap: 8px; }
+.resume p { margin: 0; font-size: 13px; }
+.resume[hidden] { display: none; }

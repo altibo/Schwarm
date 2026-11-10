@@ -12,10 +12,10 @@ export class Recorder {
   private saving: Promise<unknown> = Promise.resolve();
   /** Saves are skipped (e.g. no IndexedDB); the report then says so. */
   failed = false;
-  constructor(runner: SetRunner, presetId: string, existing?: PartyRecord) {
+  constructor(runner: SetRunner, presetId: string, existing?: PartyRecord, id?: string) {
     this.rec = existing ?? {
       v: 1,
-      id: newPartyId(),
+      id: id ?? newPartyId(),
       startedAt: Date.now(),
       updatedAt: Date.now(),
       preset: presetId,
@@ -41,7 +41,7 @@ export class Recorder {
     else if (this.rec.mode !== "live") this.rec.mode = this.runner.mode;
     this.rec.joinedMax = Math.max(this.rec.joinedMax, extra.joined ?? 0, p.crowd.n);
     this.rec.events = this.runner.director.events.filter((e) => e.kind !== "level");
-    if (++this.unsaved >= 16) void this.save();
+    if (++this.unsaved >= 8) void this.save();
   }
   save(finished = false) {
     if (finished) this.rec.finished = true;

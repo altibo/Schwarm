@@ -75,7 +75,8 @@ export class Party {
       this.dropType = p.drop;
       if (!this.flashes.some((f) => Math.abs(f - heard) < 50)) this.flashes.push(heard);
     }
-    this.flashes = this.flashes.filter((f) => f > t - 5000);
+    // Kept 10 s: the screens flash on the one and the next 3 downbeats.
+    this.flashes = this.flashes.filter((f) => f > t - 10000);
     this.phonesUp = this.lm.active && !p.drop && p.sinceDrop > 0 && (p.preDrop || p.readiness >= 0.75);
     const c = this.crowd;
     const msg: BarMsg = {
