@@ -1,0 +1,101 @@
+// Phase 2 screenshots: report, story cards, guest card + nights, party profile, TV calibration
+// and light surface, mic measurement (loopback mic), resume banner.
+//   node tools/shots-p2.ts <baseUrl> <outDir>
+import { chromium, type Page } from "@playwright/test";
+import { writeFileSync, mkdirSync } from "node:fs";
+import { FAKE_MOTION } from "../tests/browser/fake-motion.ts";
+import { FAKE_MIC } from "../tests/browser/fake-mic.ts";
+const [base = "http://127.0.0.1:4180/", out = "/workspace/schwarm/shots/p2"] = process.argv.slice(2);
+mkdirSync(out, { recursive: true });
+type W = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
+const ctx = await browser.newContext({ deviceScaleFactor: 2 });
+const shot = (p: Page, name: string, fullPage = false) => p.screenshot({ path: `${out}/${name}.png`, fullPage });
+const savePng = async (p: Page, sel: string, name: string) => {
+  const src: string = await p.locator(sel).evaluate((i: HTMLImageElement) => i.src);
+  writeFileSync(`${out}/${name}.png`, Buffer.from(src.split(",")[1], "base64"));
+};
+// 1) Report with an example night.
+const r = await ctx.newPage();
+await r.setViewportSize({ width: 390, height: 844 });
+await r.goto(`${base}report.html`);
+await r.click("#demo");
+await r.waitForSelector("#detail:not([hidden])");
+await r.waitForTimeout(400);
+await shot(r, "report-390x844");
+await shot(r, "report-full-390x844", true);
+await savePng(r, "#cardImg", "story-card-master-1080x1920");
+await r.setViewportSize({ width: 844, height: 390 });
+await r.waitForTimeout(400);
+await shot(r, "report-844x390");
+await r.click("#back");
+await shot(r, "report-list-844x390");
+await r.close();
+// 2) Master: mic measurement, TV calibration, profile.
+const m = await ctx.newPage();
+await m.addInitScript(FAKE_MIC);
+await m.setViewportSize({ width: 844, height: 390 });
+await m.goto(`${base}?crowd=live&net=local`);
+await m.waitForFunction(() => (window as unknown as W).__schwarm.state().party?.nets?.length > 0);
+await m.click("#micOpen");
+await m.click("#micGo");
+await m.waitForFunction(() => /Gemessen|Klicks/.test(document.getElementById("micRes")!.textContent ?? ""), null, { timeout: 20000 });
+await shot(m, "master-mic-844x390");
+await m.click("#micUse");
+await m.click("#tvCalOpen");
+await m.locator("#tvMs").fill("60");
+await m.waitForFunction(() => document.getElementById("tvcalFlash")!.classList.contains("on"), null, { timeout: 5000 });
+await shot(m, "master-tv-calibration-844x390");
+await m.click("#tvcalDone");
+await m.waitForTimeout(300);
+await shot(m, "master-party-profile-844x390");
+await m.setViewportSize({ width: 390, height: 844 });
+await m.waitForTimeout(300);
+await shot(m, "master-party-profile-390x844");
+await m.setViewportSize({ width: 844, height: 390 });
+await m.click("#pStart");
+const url: string = await m.evaluate(() => (window as unknown as W).__schwarm.state().party.url);
+const s = await ctx.newPage();
+await s.goto(url.replace("guest.html", "swarm.html").replace("#", "&n=9#"));
+const g = await ctx.newPage();
+await g.setViewportSize({ width: 390, height: 844 });
+await g.addInitScript(FAKE_MOTION);
+await g.goto(url);
+await g.evaluate(() => (window as unknown as W).__dance({ amp: 4.5, offset: 0.1 }));
+await g.click("#agree");
+await g.waitForSelector("#pocket:not([hidden])", { timeout: 20000 });
+await m.bringToFront();
+await m.waitForTimeout(35000);
+await m.click("#drop");
+await m.waitForTimeout(9000);
+await m.click("#openParty");
+await m.click("#pTv");
+await m.waitForTimeout(1500);
+await shot(m, "master-tv-light-844x390");
+// 3) Guest: own card, then the past-nights list.
+await g.bringToFront();
+const box = (await g.locator("#showStats").boundingBox())!;
+await g.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+await g.mouse.down();
+await g.waitForTimeout(2300);
+await g.mouse.up();
+await shot(g, "guest-stats-with-card-button-390x844");
+await g.click("#myCard");
+await g.waitForTimeout(400);
+await shot(g, "guest-card-view-390x844");
+await savePng(g, "#gCardImg", "story-card-guest-1080x1920");
+await g.click("#gCardClose");
+await g.click("#leave");
+await g.click("#gCardClose");
+await g.waitForTimeout(300);
+await shot(g, "guest-nights-390x844");
+// 4) Resume after a master reload.
+await m.bringToFront();
+await m.click("#tvExit");
+await m.reload();
+await m.waitForSelector("#resume:not([hidden])");
+await m.click("#closeParty");
+await m.waitForTimeout(300);
+await shot(m, "master-resume-844x390");
+await browser.close();
+console.log("p2 shots done");
