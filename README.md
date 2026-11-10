@@ -1,16 +1,76 @@
-# SCHWARM – Phase 0 (Musik-Gate)
+# SCHWARM – Phase 1 (Live-Party) auf Phase 0 (Musik-Gate)
 
-**Live:** https://altibo.github.io/Schwarm/ · **Blindtest:** https://altibo.github.io/Schwarm/test.html · **Teilnehmer-Ansicht:** https://altibo.github.io/Schwarm/guest.html
+**Master:** https://altibo.github.io/Schwarm/ · **Gast:** https://altibo.github.io/Schwarm/guest.html ·
+**Blindtest:** https://altibo.github.io/Schwarm/test.html · **Datenschutz:** https://altibo.github.io/Schwarm/privacy.html
 
-SCHWARM ist ein KI-DJ, der mit der Tanzfläche spielt (Konzept „SCHWARM v4“). Phase 0 baut nur das,
-was vor allem anderen geprüft werden muss: **Trägt die selbst erzeugte Musik 60 Minuten?**
+SCHWARM ist ein KI-DJ, der mit der Tanzfläche spielt (Konzept „SCHWARM v4“). Phase 0 hat die
+Musik-Engine gebaut, Phase 1 bringt die **echte Messung**: Gäste scannen einen QR-Code, ihr Handy
+misst in der Tasche die Bewegung, der Master bündelt das live und steuert damit den Drop.
 
-> **Ehrlich:** Niemand im Team hat die Musik bisher angehört. Alle Aussagen über Klang stammen aus
-> objektiven Messungen (siehe [docs/messwerte.md](docs/messwerte.md)). Ob es gut klingt, entscheidet
-> erst der Blindtest mit Menschen. Getestet wurde automatisiert in Chromium (Desktop, headless),
-> **nicht** in Safari, nicht auf einem echten Handy, nicht über echte Lautsprecher.
+> **Ehrlich:** Getestet ist alles automatisiert in Chromium (headless) mit **künstlichen
+> Bewegungsdaten**. Auf echten Handys, in Safari/iOS und mit echten Tänzern ist Phase 1 **ungetestet**.
+> Die Schwellen und Lage-Referenzen sind Startwerte, bis das Labor (Konzept §13) misst.
 
-## Was gebaut ist
+## Ausprobieren mit zwei Handys
+
+1. **Master** (Laptop, Tablet oder Handy, am besten mit Lautsprecher): https://altibo.github.io/Schwarm/
+   öffnen → Vorlage wählen (z. B. „10 min · Demo-Welle“) → **„Crowd: Live“**. Es erscheint ein
+   großer QR-Code mit 6-stelligem Code. **„Zurück“**, dann **▶ Play**.
+2. **Handy 1 (Gast):** QR-Code mit der Kamera scannen (oder `…/guest.html` öffnen und den Code tippen)
+   → kurzen Hinweis lesen → **„Mitmachen“** (iPhone fragt nach „Bewegung und Ausrichtung“ →
+   erlauben). Nach 2–5 s ist der Bildschirm **schwarz (Taschenmodus)**: Handy in die Hosentasche, tanzen.
+3. **Handy 2:** genauso. Auf dem Master steht jetzt „2 zählen“, darunter Energie und Gleichtakt.
+4. **Statistik ansehen:** auf dem Gast-Handy **„Statistik“ 2 s gedrückt halten** – Schwarm, Gleichtakt-Ring,
+   eigene Werte, Drop-Bereitschaft, Kurve mit „Du bist hier“. „Taschenmodus“ macht wieder schwarz.
+5. **Drop freischalten:** beide im Takt wippen. Im Build-up füllt sich die Drop-Bereitschaft; bei 100 %
+   fällt der Drop auf die nächste Eins, sonst kommt spätestens nach 3 Blöcken der Rettungs-Drop.
+   Vor dem Drop erscheint auf den Gast-Handys **„PHONES UP!“** (Android vibriert), beim Drop **blitzen
+   alle Bildschirme gleichzeitig** (höchstens einmal pro Takt). Zum schnellen Ausprobieren:
+   „Drop jetzt erzwingen“.
+6. **Allein testen:** Master auf dem Handy → „Ich tanze mit“ (Steuerung wird gesperrt, Entsperren
+   3 s halten, Stop bleibt sichtbar). Ein Tänzer reicht: Solo-Regel (eigener Takt ≥ 60 % über 16 Takte).
+7. **TV-Modus:** im QR-Fenster „TV-Modus“ – große Phase, Drop-Bereitschaft, QR in der Ecke, blitzt
+   beim Drop mit. Bluetooth-Lautsprecher? Im QR-Fenster **„Mitklopfen (8×)“** im Takt tippen.
+
+## Phase 1: was dazu kam
+
+- **Sitzung + Beitritt** (`src/net/session.ts`): QR-Link `guest.html?s=<id>#k=<schlüssel>`, 6-stelliger
+  Code über eine verschlüsselte Lobby, Einwilligung (deutsch, 3 Sätze, „Raus“ jederzeit, Link zur
+  Datenschutzseite), iOS-Bewegungsfreigabe per Tipp, „Nur zuschauen“ ohne Sensor. Beitritt in den
+  Tests 1–3,5 s (Ziel < 15 s).
+- **Transport** (`src/net/transport.ts`, `src/net/mqtt-lite.ts`): öffentliche MQTT-Broker über WSS
+  (shiftr.io, HiveMQ, EMQX) primär, WebRTC über PeerJS (Master als Hub) als Fallback, BroadcastChannel
+  für Tests. Ende-zu-Ende-verschlüsselt (AES-GCM, Schlüssel nur im URL-Fragment). Begründung,
+  Messwerte und Grenzen: [docs/netz.md](docs/netz.md).
+- **Uhrsync** (`src/net/clock.ts`): ≥ 10 Ping-Pongs, kleinste Laufzeit zählt, alle 30 s neu. Der
+  Master sendet pro Takt das **gehörte** Raster; Lichtbefehle 1–2 Takte im Voraus.
+- **Messung am Gast** (`src/sense.ts`): DeviceMotion `acceleration`, sonst Hochpass 0,3 Hz auf
+  `accelerationIncludingGravity` (qᵢ = 0,7); pro Takt eᵢ (gegen Lage-Referenz, persönliche Anpassung
+  ±30 % nur aus Fenstern mit Rᵢ ≥ 0,6, Zeitkonstante 30 min), Bewegungsperiode ½/1/2 Schläge, Phase φᵢ′,
+  Stabilität Rᵢ über 4 Takte (zufallskorrigiert), Lage Tasche/Hand/hoch/Tisch. Taschenmodus schwarz mit
+  Touch-Sperre (2 s halten), Wake Lock, ehrlicher Hinweis nach verdeckter Seite, Akku-Hinweis < 30 %.
+- **Aggregation am Master** (`src/aggregate.ts`, `src/party.ts`): O(1) pro Meldung, N, Beteiligung P,
+  getrimmte q-gewichtete Energie E, zufallskorrigierter Gleichtakt S, Rayleigh, Median Rᵢ, Phones-up-Quote U;
+  Stichprobe ab 150 Geräten. Speist den Director („Crowd: Live“); Regler und Simulation bleiben wählbar.
+- **Phones up + Licht**: Licht-Moment vom Build-up-Start bis 8 Takte nach dem Drop (höchstens alle 15 min,
+  E eingefroren), „PHONES UP!“, Blitz auf der Eins auf allen Gast-Handys und im TV-Modus, Farbe folgt
+  der Energie, ≤ 1 Blitz pro Takt, Reduced Motion: kein Blitz.
+- **Teilnehmer-Ansicht** mit echten Daten; eigene Werte aus dem eigenen Sensor.
+- **Last-Test** (`swarm.html`): N simulierte Gäste in einem Tab, jeder mit eigener Verbindung, eigener
+  Uhr und derselben Messkette.
+
+### Tests (Phase 1)
+
+- Unit (`tests/sense.test.ts`, `tests/aggregate-net.test.ts`): Merkmale (Periode, Phase, Rᵢ, Fallback,
+  Lage, Anpassung, Anti-Cheat), Aggregation (Zufallskorrektur und Falsch-Freigaben ≤ 5 % bei N = 5,
+  Rayleigh, getrimmtes Mittel, Präsenz, Solo-Serie, Einfrieren, Stichprobe, O(1)-Last), Uhrsync, Krypto,
+  Licht-Momente.
+- Playwright (`tests/browser/party.spec.ts`), echte Bewegungs-Events (`DeviceMotionEvent`) künstlich erzeugt:
+  1 Gast (Solo, lokal), **5 Gäste über shiftr.io** in getrennten Browser-Kontexten, **50 Gäste über
+  shiftr.io** (Last-Test-Seite), Phones up + Blitz-Synchronität, Code-Beitritt über die Lobby +
+  Neuladen des Masters, **WebRTC/PeerJS**, Layout.
+
+## Phase 0: Was gebaut ist
 
 - **Engine** (`src/audio/mix.ts`, `src/live.ts`): eigene Web-Audio-Engine nach dem BoomStep-Prinzip.
   Look-ahead-Scheduler, alle Klänge auf der Audio-Uhr (sample-genau), Wechsel auf Taktgrenzen.
@@ -40,7 +100,7 @@ was vor allem anderen geprüft werden muss: **Trägt die selbst erzeugte Musik 6
 - **Blindtest** (`test.html`): deutsches Testformular, spielt das feste Set A (Seed 2026, 60 min),
   „Langweilig“-Taste mit Zeitstempel, Note 1–10 alle 10 Minuten, Modus „Playlist bewerten“ mit Timer,
   Export als JSON/CSV, Gate-Rechner für die Testleitung. Anleitung: [docs/blindtest.md](docs/blindtest.md).
-- **Teilnehmer-Ansicht** (`guest.html`): Vorschau, gespeist aus Simulations-Reglern: leuchtender
+- **Teilnehmer-Ansicht** (`guest.html?preview`): Vorschau, gespeist aus Simulations-Reglern (Phase 1: live mit echten Daten): leuchtender
   Schwarm (Punkte = Tänzer, log-skaliert ab 150), pulsierender Gleichtakt-Ring, Crowd-Energie,
   eigene Werte mit „Du bist im Takt!“, Drop-Bereitschaft, Kurve mit „Du bist hier“. Taschenmodus
   schwarz ohne Animation; Statistik nur auf Knopfdruck.

@@ -1,8 +1,23 @@
-# Skalierung: von 1 Tänzer bis 1000+ (Plan, noch kein Server)
+# Skalierung: von 1 Tänzer bis 1000+
 
-Stand Phase 0: Es gibt **keinen Server** und **keine echte Messung**. Die App rechnet mit einem
-simulierten Crowd-Aggregat. Dieses Dokument legt fest, wie die echten Daten später fließen, damit
-Director und Oberflächen schon jetzt richtig gebaut sind.
+**Stand Phase 1:** Es gibt echte Messung auf den Gast-Handys und ein Live-Aggregat am Master
+(`src/aggregate.ts`). Einen eigenen Server gibt es noch nicht; der Transport läuft über öffentliche
+Broker bzw. WebRTC (siehe `netz.md`). Der Master ist der Hub, die Stichprobe ab 150 Geräten ist
+gebaut. Dieses Dokument beschreibt den Weg darüber hinaus.
+
+### Phase 1: Live-Aggregat am Master
+
+- `LiveAggregator.add()` faltet jede Takt-Meldung in **O(1)** in einen Takt-Akkumulator:
+  Σw, Σw·cos φ, Σw·sin φ, Zähler über der Ruheschwelle, Zähler „hoch“ und zwei Histogramme mit
+  20 Klassen (getrimmtes Mittel von eᵢ, Median von Rᵢ). Speicher pro Takt ist fest, egal wie viele Gäste.
+- Ergebnis pro Takt: N (aktiv), m (Meldungen), E, R, **S = √max(0, (m·R² − 1)/(m − 1))**,
+  Rayleigh Z = m·R², P, U, Median Rᵢ, Solo-Serie.
+- Für gemessene Daten gilt zusätzlich zur Regel unten: **Rayleigh p < 0,05** (S ≥ √(2/(m−1)))
+  und **Median Rᵢ ≥ 0,5** (Konzept §7). Solo: Rᵢ ≥ 0,6 über **16 Takte** in Folge und Energie ≥ 6.
+- Aktiv = in den letzten 5 s gehört (bei Stichprobe 20 s), Seite sichtbar, misst (nicht „nur
+  zuschauen“), liegt nicht 60 s flach auf dem Tisch. Verdeckte oder weggefallene Geräte
+  verlassen den Nenner und gelten nicht als müde.
+- Niemand zählt (N = 0): „Drop kommt nach Plan“, der Director fährt nur nach Kurve.
 
 ## Grundsatz: Der Director sieht nur ein Aggregat
 

@@ -216,10 +216,18 @@ function show(s: typeof screen) {
 }
 // Battery: no animation in pocket mode or when hidden; 30 fps cap otherwise; static frame with reduced motion.
 let last = 0;
+let lastLost = 0;
 const t0 = performance.now();
 function frame(now: number) {
   requestAnimationFrame(frame);
   flashFrame(now);
+  // Network gone: the grid runs on freely for 32 bars, then the view dims honestly.
+  if (core?.link.last && now - lastLost > 1000) {
+    lastLost = now;
+    const lost = !Number.isFinite(core.link.barAt(performance.timeOrigin + now));
+    document.body.classList.toggle("lost", lost);
+    if (lost) $("gStat").textContent = "Verbindung zum Master verloren – versuche es weiter …";
+  }
   if (state.pocket || document.hidden || screen !== "gview") return;
   const motion = !reducedMotion();
   if (!motion && last) return;
@@ -375,6 +383,13 @@ async function goLive(sid: string, key: string) {
       return;
     }
     keepAwake();
+    // Battery (Chromium only): below 30 % suggest locking the phone.
+    void (navigator as unknown as { getBattery?: () => Promise<{ level: number; charging: boolean }> }).getBattery?.().then((b) => {
+      if (b.level < 0.3 && !b.charging) {
+        $("hiddenNote").textContent = `Akku bei ${Math.round(b.level * 100)} % – sperr dein Handy ruhig; du zählst dann nur nicht mit.`;
+        $("hiddenNote").hidden = false;
+      }
+    });
     show("gview");
     setPocket(ok);
   };
@@ -386,6 +401,7 @@ document.addEventListener("visibilitychange", () => {
   const vis = document.visibilityState === "visible";
   core.setVisible(vis);
   if (vis && core.link.joined && core.sensing) {
+    $("hiddenNote").textContent = "Während die Seite verdeckt war, hast du nicht gezählt – das ist okay, du giltst nicht als müde.";
     $("hiddenNote").hidden = false;
     setTimeout(() => ($("hiddenNote").hidden = true), 9000);
   }

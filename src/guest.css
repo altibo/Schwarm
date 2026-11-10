@@ -65,3 +65,4 @@
 .btn.live-g[hidden] { display: none; }
 .gscreen > * { min-width: 0; }
 .codein input { width: 100%; min-width: 0; }
+body.lost .gview { filter: brightness(0.45) saturate(0.4); }
