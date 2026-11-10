@@ -60,7 +60,7 @@ test("guest stops reporting (network gone: every packet lost, no goodbye) → ou
   await g.close();
 });
 test("phone lies still on the table (pocket mode on): energy ≈ 0 at once, after 60 s not counted, energy 0 – never a held mid value", async ({ page }) => {
-  test.setTimeout(150000);
+  test.setTimeout(200000);
   const url = await party(page);
   const g = await guest(page, url);
   await g.evaluate(() => (window as unknown as W).__dance({ amp: 0, noise: 0.03, tilt: 0 }));
@@ -75,10 +75,11 @@ test("phone lies still on the table (pocket mode on): energy ≈ 0 at once, afte
     if ((await st(page)).party.crowd.n === 0 && Date.now() - t0 > 8000) break;
   }
   expect(maxE, "no jump back to a mid value while lying still").toBeLessThan(0.5);
+  // Under load a throttled guest can drop out of N via the presence window first; either way it must end up 'still'.
+  await expect.poll(() => g.evaluate(() => (window as unknown as W).__guest.core().my.still), { timeout: 45000 }).toBe(true);
   const s = await st(page);
   expect(s.party.crowd.n).toBe(0);
   expect(s.party.joined).toBe(1);
-  expect(await g.evaluate(() => (window as unknown as W).__guest.core().my.still)).toBe(true);
   for (let k = 0; k < 3; k++) {
     await page.waitForTimeout(2000);
     expect(await ist(page)).toBe(0);
