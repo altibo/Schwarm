@@ -6,6 +6,7 @@ import { fingerprint } from "./arranger.ts";
 import { loadLibrary } from "./audio/samples.ts";
 import { createMix, scheduleBar } from "./audio/mix.ts";
 let scores: Score[] = [];
+let kept: Int16Array | null = null;
 const PRE = 20;
 const w = window as unknown as Record<string, unknown>;
 w.schwarm = {
@@ -21,7 +22,20 @@ w.schwarm = {
       kicks: scores.flatMap((s) => s.events.filter((e) => (e.voice === "kick" || e.voice === "hkick") && e.vel > 0.6).map((e) => s.plan.time + (e.step * 15) / s.plan.bpm)),
     };
   },
-  async renderChunk(start: number, end: number, sr: number) {
+  /** Single pass (no chunk joins): render [0, end) once, keep it, hand it out in slices. The
+   * offline graph is not time-shift invariant (oscillator pitch ramps depend on the absolute
+   * context time), so chunks rendered with different pre-roll starts do not join seamlessly. */
+  async renderAll(end: number, sr: number) {
+    const r = await (w.schwarm as { renderChunk: (a: number, b: number, c: number, keep?: boolean) => Promise<{ peak: number; clipped: number; voices: number }> }).renderChunk(0, end, sr, true);
+    return { peak: r.peak, clipped: r.clipped, voices: r.voices, frames: (kept as Int16Array).length / 2 };
+  },
+  slice(a: number, b: number) {
+    const bytes = new Uint8Array((kept as Int16Array).buffer, a * 4, (b - a) * 4);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  },
+  async renderChunk(start: number, end: number, sr: number, keep = false) {
     const tPre = Math.max(0, Math.floor((start - PRE) * sr) / sr);
     const frames = Math.round((end - tPre) * sr);
     const ctx = new OfflineAudioContext(2, frames, sr);
@@ -67,6 +81,10 @@ w.schwarm = {
       sq += l * l + r * r;
       out[j] = Math.max(-32768, Math.min(32767, Math.round(l * 32767)));
       out[j + 1] = Math.max(-32768, Math.min(32767, Math.round(r * 32767)));
+    }
+    if (keep) {
+      kept = out;
+      return { b64: "", peak, clipped, voices, rmsDb: 0 };
     }
     const bytes = new Uint8Array(out.buffer);
     let bin = "";

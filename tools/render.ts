@@ -35,7 +35,14 @@ header.writeUInt32LE(sr * 4, 28); header.writeUInt16LE(4, 32); header.writeUInt1
 writeSync(fd, header);
 let peak = 0, clipped = 0, voices = 0;
 const t0 = Date.now();
-for (let s = 0; s < total; s += CH) {
+if (process.env.SINGLE) {
+  type P = { schwarm: { renderAll: (e: number, sr: number) => Promise<{ peak: number; clipped: number; voices: number; frames: number }>; slice: (a: number, b: number) => string } };
+  const r = await page.evaluate(([e, s2]) => (window as never as P).schwarm.renderAll(e, s2), [total, sr]);
+  for (let a = 0; a < r.frames; a += sr * 30) writeSync(fd, Buffer.from(await page.evaluate(([x, y]) => (window as never as P).schwarm.slice(x, y), [a, Math.min(r.frames, a + sr * 30)]), "base64"));
+  peak = r.peak; clipped = r.clipped; voices = r.voices;
+  console.log(`single pass ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+}
+for (let s = 0; s < (process.env.SINGLE ? 0 : total); s += CH) {
   const e = Math.min(total, s + CH);
   const r = await page.evaluate(([a, b, c]) => (window as never as { schwarm: { renderChunk: (a: number, b: number, c: number) => Promise<{ b64: string; peak: number; clipped: number; voices: number }> } }).schwarm.renderChunk(a, b, c), [s, e, sr]);
   writeSync(fd, Buffer.from(r.b64, "base64"));
