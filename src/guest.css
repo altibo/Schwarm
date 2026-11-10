@@ -66,3 +66,19 @@
 .gscreen > * { min-width: 0; }
 .codein input { width: 100%; min-width: 0; }
 body.lost .gview { filter: brightness(0.45) saturate(0.4); }
+/* Phase 2: own story card + past nights */
+.nights { width: 100%; max-width: 420px; margin-top: 18px; }
+.nights h2 { font-size: 16px; margin: 0 0 4px; }
+.nights ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.nights li { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(170, 180, 255, 0.18); border-radius: 12px; padding: 6px 8px; }
+.nights li span { flex: 1; min-width: 0; font-size: 13px; }
+.nights li .btn { flex: 0 0 auto; }
+.gcard { position: fixed; inset: 0; z-index: 40; background: #05040f; display: grid; justify-items: center; align-content: start; gap: 8px; overflow-y: auto;
+  padding: max(10px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)); }
+.gcard[hidden] { display: none; }
+.gcardimg { height: min(62dvh, 640px); max-width: 100%; aspect-ratio: 9 / 16; border-radius: 16px; box-shadow: 0 0 30px hsla(300, 100%, 60%, 0.4); object-fit: contain; }
+.gcard .row { width: 100%; max-width: 420px; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .gcard { grid-template-columns: auto minmax(0, 1fr); align-content: center; }
+  .gcardimg { height: calc(100dvh - 30px); grid-row: span 4; }
+}

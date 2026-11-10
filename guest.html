@@ -17,13 +17,18 @@
   <button class="btn big" id="codeGo">Beitreten</button>
   <p class="err" id="codeErr" role="alert"></p>
   <a class="btn small linkbtn" href="./guest.html?preview">Vorschau ansehen (simuliert)</a>
+  <section class="nights" id="nights" hidden>
+    <h2>Deine Nächte</h2>
+    <p class="dim">Nur auf diesem Handy gespeichert.</p>
+    <ul id="nightList"></ul>
+  </section>
 </section>
 <section class="gscreen" id="consent" hidden>
   <strong class="logo">SCHWARM</strong>
   <h1>Mittanzen?</h1>
   <ul class="consent">
     <li><b>Gemessen wird nur die Bewegung deines Handys</b> (Beschleunigung). Ausgewertet wird sie auf deinem Handy; pro Takt gehen nur wenige Zahlen raus (Energie, Takt, Lage).</li>
-    <li><b>Anonym:</b> zufällige Sitzungs-ID, kein Konto, <b>keine Kamera, kein Mikrofon</b>, kein Standort. Ende-zu-Ende-verschlüsselt, nichts wird gespeichert.</li>
+    <li><b>Anonym:</b> zufällige Sitzungs-ID, kein Konto, <b>keine Kamera, kein Mikrofon</b>, kein Standort. Ende-zu-Ende-verschlüsselt. Gespeichert wird nur auf deinem Handy eine kleine Zusammenfassung für deine Karte (löschbar).</li>
     <li>Verantwortlich ist der Gastgeber dieser Party. Mitmachen ist freiwillig, <b>„Raus“ geht jederzeit</b>.</li>
   </ul>
   <a class="btn small linkbtn" href="./privacy.html">Mehr zum Datenschutz</a>
@@ -77,8 +82,16 @@
   </section>
   <p class="note" id="hiddenNote" hidden>Während die Seite verdeckt war, hast du nicht gezählt – das ist okay, du giltst nicht als müde.</p>
   <p class="dim gstat" id="gStat"></p>
-  <div class="row"><button class="btn" id="toPocket">Taschenmodus</button><button class="btn live-g" id="leave" hidden>Raus</button></div>
+  <div class="row"><button class="btn" id="toPocket">Taschenmodus</button><button class="btn live-g" id="myCard" hidden>Meine Karte</button><button class="btn live-g" id="leave" hidden>Raus</button></div>
 </main>
+<section class="gcard" id="cardView" hidden aria-label="Deine Story-Karte">
+  <img id="gCardImg" class="gcardimg" alt="Deine Story-Karte" />
+  <p class="dim">Auf deinem Handy erzeugt, ohne Namen. Geteilt wird nur, wenn du willst.</p>
+  <div class="row"><button class="btn" id="gShare">Teilen</button><button class="btn" id="gSave">Speichern</button></div>
+  <div class="row"><button class="btn small" id="gCardDel" hidden>Diese Nacht löschen</button><button class="btn small" id="gCardClose">Schließen</button></div>
+  <p class="dim" id="gCardNote" aria-live="polite"></p>
+</section>
+<canvas id="gCard" hidden></canvas>
 <section class="simpanel" id="simpanel" hidden>
   <h2>Simulation (nur für die Vorschau, später speist das der Relay)</h2>
   <label class="slider">Anzahl Tänzer <output id="sNo">128</output><input id="sN" type="range" min="0" max="1" step="0.001" /></label>

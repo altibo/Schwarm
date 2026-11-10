@@ -1,3 +1,6 @@
+import { NightLog, saveNight, loadNights, deleteNight, summarizeNight, type GuestNight } from "./report/guest-night.ts";
+import { drawCard, shareCard, cardBlob, downloadBlob, clock, dayLabel } from "./report/card.ts";
+import { guestCard } from "./report/card-data.ts";
 import "./style.css";
 import "./guest.css";
 import { sliderToN, nToSlider, formatN, readiness, unlockRule } from "./crowd.ts";
@@ -308,7 +311,15 @@ const net = params.get("net") ?? "auto";
 let core: GuestCore | null = null;
 const openedAt = now();
 let wasUp = false;
+// The guest's own night (local only) → "Meine Karte".
+let night: NightLog | null = null;
+let nightBars = 0;
+const saveMyNight = () => night && saveNight(night.night);
 function onBar(m: BarMsg) {
+  if (night) {
+    night.bar(m, Date.now());
+    if (++nightBars % 16 === 0) saveMyNight();
+  }
   state.n = m.crowd.n;
   state.joined = m.crowd.joined;
   state.energy = m.crowd.E;
@@ -351,9 +362,13 @@ async function goLive(sid: string, key: string) {
   $("leave").hidden = false;
   core = new GuestCore({ sid, key, net });
   core.onBar = onBar;
+  night = new NightLog(sid);
+  nightBars = 0;
+  $("myCard").hidden = false;
   core.onFeatures = (f) => {
     state.myEnergy = f.e * 10;
     state.myStab = f.R;
+    night?.me(f, Date.now());
   };
   show("consent");
   core.connect().catch((e) => ($("joinErr").textContent = `Keine Verbindung: ${(e as Error).message}. Bitte WLAN/Mobilfunk prüfen.`));
@@ -409,6 +424,12 @@ document.addEventListener("visibilitychange", () => {
 $("leave").onclick = async () => {
   await core?.leave();
   core = null;
+  saveMyNight();
+  const mine = night?.night;
+  night = null;
+  $("myCard").hidden = true;
+  renderNights();
+  if (mine?.start) openCard(mine, false);
   state.live = false;
   state.hasMe = false;
   show("join");
@@ -429,6 +450,58 @@ $("codeGo").onclick = async () => {
     $("codeErr").textContent = (e as Error).message;
   }
 };
+// --- story card + past nights --------------------------------------------------------------
+let cardNight: GuestNight | null = null;
+function openCard(n: GuestNight, deletable: boolean) {
+  cardNight = n;
+  drawCard($<HTMLCanvasElement>("gCard"), guestCard(n));
+  $<HTMLImageElement>("gCardImg").src = $<HTMLCanvasElement>("gCard").toDataURL("image/png");
+  $("gCardDel").hidden = !deletable;
+  $("gCardNote").textContent = "";
+  $("cardView").hidden = false;
+}
+const cardName = (n: GuestNight) => `schwarm-meine-nacht-${new Date(n.start).toISOString().slice(0, 10)}.png`;
+$("myCard").onclick = () => {
+  if (!night?.night.start) {
+    $("gStat").textContent = "Noch keine Daten – nach dem ersten Takt gibt es deine Karte.";
+    return;
+  }
+  saveMyNight();
+  openCard(structuredClone(night.night), false);
+};
+$("gShare").onclick = async () => {
+  if (!cardNight) return;
+  const how = await shareCard($<HTMLCanvasElement>("gCard"), cardName(cardNight));
+  $("gCardNote").textContent = how === "shared" ? "Geteilt." : how === "downloaded" ? "Teilen geht hier nicht – Bild gespeichert." : "Abgebrochen.";
+};
+$("gSave").onclick = async () => cardNight && downloadBlob(await cardBlob($<HTMLCanvasElement>("gCard")), cardName(cardNight));
+$("gCardClose").onclick = () => ($("cardView").hidden = true);
+$("gCardDel").onclick = () => {
+  if (!cardNight) return;
+  deleteNight(cardNight.sid, cardNight.start);
+  $("cardView").hidden = true;
+  renderNights();
+};
+function renderNights() {
+  const xs = loadNights();
+  $("nights").hidden = !xs.length;
+  $("nightList").innerHTML = "";
+  for (const n of xs) {
+    const s = summarizeNight(n);
+    const li = document.createElement("li");
+    const t = document.createElement("span");
+    t.textContent = `${dayLabel(n.start)} · ${clock(n.start)}–${clock(n.end)} · ${s.myMinutes} min mitgetanzt · ${n.drops.length} Drops`;
+    const b = document.createElement("button");
+    b.className = "btn small";
+    b.textContent = "Karte";
+    b.onclick = () => openCard(n, true);
+    li.append(t, b);
+    $("nightList").append(li);
+  }
+}
+window.addEventListener("pagehide", () => saveMyNight());
+document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && saveMyNight());
+renderNights();
 const sid = params.get("s");
 if (sid && hashK) void goLive(sid, hashK);
 else if (params.has("preview")) {
@@ -438,4 +511,4 @@ else if (params.has("preview")) {
 } else show("join");
 requestAnimationFrame(frame);
 registerSW();
-(window as unknown as { __guest: unknown }).__guest = { state, dotsFor, core: () => core, flashLog };
+(window as unknown as { __guest: unknown }).__guest = { state, dotsFor, core: () => core, flashLog, night: () => night?.night ?? null };
