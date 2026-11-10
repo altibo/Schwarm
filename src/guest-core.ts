@@ -61,7 +61,8 @@ export class GuestCore {
     if (!g || this.link.clock.count < 3) return;
     const cur = this.link.barAt(now());
     if (!Number.isFinite(cur)) return;
-    if (this.done < 0) this.done = cur - 1;
+    // First bar, or the master tab was reloaded (its bar count restarted): follow the new grid.
+    if (this.done < 0 || cur < this.done || cur - this.done > 64) this.done = cur - 1;
     while (this.done < cur - 1) {
       const bar = ++this.done;
       if (!this.visible) continue;

@@ -240,6 +240,7 @@ export class GuestLink {
       if (!this.pending.delete(m.k)) return;
       this.clock.add({ t0: m.t0, tm: m.tm, t2: now() });
     } else if (m.t === "welcome") {
+      if (this.ep && m.ep !== this.ep) void this.syncClock(5);
       this.ep = m.ep;
     } else if (m.t === "bar") {
       if (this.ep && m.ep !== this.ep) {
