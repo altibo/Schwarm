@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#07061a" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon-192.png" />
+<title>SCHWARM · Blindtest (Test)</title>
+</head>
+<body class="bt">
+<main class="test">
+  <header class="top">
+    <strong class="logo">SCHWARM</strong>
+    <span class="tag test-badge">TEST · Musik-Gate Blindtest</span>
+    <nav><a href="./">Hauptansicht</a></nav>
+  </header>
+  <p class="intro">Das ist ein <b>Test</b>, kein fertiges Produkt. Du hörst bis zu 60 Minuten Musik und tippst <b>„Langweilig“</b>, sobald dir langweilig wird. Alle 10 Minuten fragen wir nach einer Note von 1 bis 10. Die Musik läuft dabei weiter. Es werden keine Namen, Kamera- oder Bewegungsdaten erfasst, nur deine Tipps mit Zeitstempel, lokal auf diesem Gerät.</p>
+  <section class="setup" id="setup">
+    <label class="field">Kürzel (Pseudonym) <input id="listener" maxlength="24" autocomplete="off" placeholder="z. B. H07" /></label>
+    <div class="field">Wiedergabe
+      <div class="row seg" id="playback">
+        <button class="btn small" data-v="Kopfhörer" aria-pressed="true">Kopfhörer</button>
+        <button class="btn small" data-v="Lautsprecher" aria-pressed="false">Lautsprecher</button>
+        <button class="btn small" data-v="Bluetooth-Box" aria-pressed="false">Bluetooth-Box</button>
+      </div>
+    </div>
+    <div class="field">Was wird bewertet?
+      <div class="row seg" id="mode">
+        <button class="btn small" data-v="schwarm" aria-pressed="true">Set A hören (60 min, hier)</button>
+        <button class="btn small" data-v="playlist" aria-pressed="false">Playlist bewerten (Timer)</button>
+      </div>
+    </div>
+    <label class="field" id="plField" hidden>Name der Playlist <input id="playlist" maxlength="60" autocomplete="off" placeholder="z. B. Kuratiert Techno 1" /></label>
+    <p class="hint" id="modeHint">Set A ist für alle Hörer gleich. Die App spielt es selbst ab. Bitte Ton laut genug stellen und den Bildschirm anlassen.</p>
+  </section>
+  <section class="run">
+    <div class="clock"><span id="clock">00:00</span><small> / 60:00</small></div>
+    <div class="row"><button class="btn play" id="start">▶ Test starten</button></div>
+    <button class="btn bored" id="bored" disabled>Langweilig</button>
+    <p class="hint" id="boredInfo">Noch nicht getippt.</p>
+    <div class="rate" id="rate" hidden>
+      <p id="rateQ">Wie gefällt dir die Musik gerade? (1 = gar nicht, 10 = sehr)</p>
+      <div class="grid10" id="rateBtns"></div>
+    </div>
+  </section>
+  <section class="results">
+    <h2>Ergebnisse auf diesem Gerät</h2>
+    <div id="list" class="list"></div>
+    <div class="row">
+      <button class="btn small" id="exportJson">Alle als JSON exportieren</button>
+      <button class="btn small" id="exportCsv">Alle als CSV exportieren</button>
+    </div>
+    <h2>Auswertung (Testleitung)</h2>
+    <p class="hint">Exportierte JSON-Dateien aller Hörer laden. Gate: Median bis Langeweile ≥ 45 min und Note ≥ 80 % der Playlist; unter 65 % ist No-Go; ≥ 10 Hörer je Gruppe.</p>
+    <label class="btn small file">JSON-Dateien laden<input type="file" id="files" accept="application/json,.json" multiple hidden /></label>
+    <pre id="gate" class="gate"></pre>
+  </section>
+</main>
+<script type="module" src="./src/blindtest.ts"></script>
+</body>
+</html>

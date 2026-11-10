@@ -6,7 +6,7 @@ import { chromium } from "@playwright/test";
 import { openSync, writeSync, closeSync, writeFileSync } from "node:fs";
 const [preset = "1h", seedArg = "2026", outBase = "/workspace/schwarm/renders/schwarm-1h", srArg = "44100", stem = ""] = process.argv.slice(2);
 // stem "kick": render only the kick voice (used to measure beat accuracy without other sounds)
-const ALL = ["drum", "noisehat", "sub", "fm", "saw", "acid", "pad", "stab", "lead", "riser", "crash", "impact", "downlifter", "atmos"];
+const ALL = ["drum", "noisehat", "sub", "fm", "saw", "acid", "pad", "stab", "lead", "riser", "crash", "impact", "downlifter", "atmos", "rumble"];
 const seed = Number(seedArg), sr = Number(srArg);
 const server = await createServer({ server: { port: 5199, strictPort: false, hmr: false, watch: null }, logLevel: "error" });
 await server.listen();

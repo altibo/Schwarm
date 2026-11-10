@@ -36,7 +36,9 @@ w.schwarm = {
     const feed = (until: number) => {
       while (k < todo.length && todo[k].plan.time - tPre < until) {
         const s = todo[k++];
-        const sc = skip.length ? { ...s, events: s.events.filter((e) => !skip.includes(e.voice) && !skip.includes(e.layer)) } : s;
+        const sc = skip.length
+          ? { ...s, events: s.events.filter((e) => !skip.includes(e.voice) && !skip.includes(e.layer)), auto: { ...s.auto, rumble: skip.includes("rumble") ? 0 : s.auto.rumble } }
+          : s;
         voices += scheduleBar(mix, sc, s.plan.time - tPre);
       }
     };

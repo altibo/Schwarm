@@ -121,7 +121,7 @@ export function createMix(ctx: BaseAudioContext, lib: Library, destination: Audi
   limiter.release.value = 0.08;
   limiter.knee.value = 0;
   const ceiling = ctx.createWaveShaper();
-  ceiling.curve = tanhCurve(1.3, 0.93, 4097);
+  ceiling.curve = tanhCurve(1.3, 0.88, 4097);
   driveSum.connect(limiter).connect(ceiling).connect(destination);
   return {
     ctx, lib, noise: noiseBuffer(ctx, 2, 303), musicIn, kickIn, fxIn, revIn, dlyIn, lp, hp, duck, rumbleDuck,

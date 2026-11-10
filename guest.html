@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon-192.png" />
+<title>SCHWARM · Teilnehmer-Ansicht (Vorschau)</title>
+</head>
+<body class="guest">
+<div class="pocket" id="pocket" hidden>
+  <p class="pocket-txt">SCHWARM läuft · Taschenmodus<br /><small>Schwarzer Bildschirm spart Akku</small></p>
+  <button class="btn ghost" id="showStats">Statistik zeigen</button>
+</div>
+<main class="gview" id="gview">
+  <header class="gtop">
+    <strong class="logo">SCHWARM</strong>
+    <span class="chip" id="gphase">Aufbau</span>
+    <span class="tag sim">Vorschau · simuliert</span>
+  </header>
+  <section class="swarm-wrap">
+    <canvas id="swarm" class="swarm" aria-label="Schwarm der verbundenen Tänzer"></canvas>
+    <div class="swarm-label"><b id="gN">128</b><span id="gNtxt">tanzen mit</span></div>
+    <p class="scale" id="gScale"></p>
+  </section>
+  <section class="tiles">
+    <div class="tile"><canvas id="gEnergy" class="gauge"></canvas><span>Crowd-Energie</span></div>
+    <div class="tile"><canvas id="gSync" class="gauge"></canvas><span>Gleichtakt</span></div>
+    <div class="tile me">
+      <span class="me-h">Du</span>
+      <label>Energie<i class="mini"><b id="myE"></b></i></label>
+      <label>Taktgefühl<i class="mini"><b id="myS"></b></i></label>
+      <span class="fb" id="myFb">Du bist im Takt!</span>
+    </div>
+  </section>
+  <section class="ready">
+    <div class="ready-h"><span>Drop-Bereitschaft</span><b id="gReadyTxt">40 %</b></div>
+    <div class="ready-bar"><i id="gReady"></i></div>
+    <p class="hint" id="gRule"></p>
+    <p class="hint rule-n" id="gRuleN"></p>
+  </section>
+  <section class="mini-curve">
+    <canvas id="gCurve" class="gcurve" aria-label="Energiekurve der Nacht"></canvas>
+  </section>
+  <div class="row"><button class="btn" id="toPocket">Taschenmodus</button></div>
+</main>
+<section class="simpanel" id="simpanel">
+  <h2>Simulation (nur für die Vorschau, später speist das der Relay)</h2>
+  <label class="slider">Anzahl Tänzer <output id="sNo">128</output><input id="sN" type="range" min="0" max="1" step="0.001" /></label>
+  <label class="slider">Crowd-Energie <output id="sEo">6,5</output><input id="sE" type="range" min="0" max="10" step="0.1" value="6.5" /></label>
+  <label class="slider">Gleichtakt <output id="sSo">55 %</output><input id="sS" type="range" min="0" max="1" step="0.01" value="0.55" /></label>
+  <label class="slider">Meine Energie <output id="sMeo">7,0</output><input id="sMe" type="range" min="0" max="10" step="0.1" value="7" /></label>
+  <label class="slider">Mein Taktgefühl <output id="sMso">70 %</output><input id="sMs" type="range" min="0" max="1" step="0.01" value="0.7" /></label>
+  <label class="slider">Position im Set <output id="sTo">24 min</output><input id="sT" type="range" min="0" max="60" step="0.5" value="24" /></label>
+  <div class="row seg" id="sPhase">
+    <button class="btn small" data-v="Aufbau" aria-pressed="true">Aufbau</button>
+    <button class="btn small" data-v="Build-up" aria-pressed="false">Build-up</button>
+    <button class="btn small" data-v="Drop" aria-pressed="false">Drop</button>
+    <button class="btn small" data-v="Peak" aria-pressed="false">Peak</button>
+    <button class="btn small" data-v="Breakdown" aria-pressed="false">Breakdown</button>
+  </div>
+  <div class="row"><button class="btn small" id="takeOut">Handy aus der Tasche nehmen (simuliert)</button></div>
+  <p class="hint">Im echten Betrieb erkennt das Handy über die Schwerkraftrichtung, ob es in der Tasche steckt. Diese Vorschau misst nichts.</p>
+  <p class="hint"><a href="./">Zur Hauptansicht</a></p>
+</section>
+<script type="module" src="./src/guest.ts"></script>
+</body>
+</html>

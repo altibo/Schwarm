@@ -4,3 +4,4 @@ test-results
 playwright-report
 *.log
 tools/_bench.ts
+tools/_shot.ts
