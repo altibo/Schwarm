@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#07061a" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon-192.png" />
+<title>SCHWARM · Nach der Nacht</title>
+</head>
+<body class="rpage">
+<main class="rp">
+  <header class="top rtop">
+    <strong class="logo">SCHWARM</strong>
+    <span class="tag">Nach der Nacht</span>
+    <nav><a href="./">Zum Master</a></nav>
+  </header>
+  <section id="list">
+    <h1>Nach der Nacht</h1>
+    <p class="dim">Jede Party wird <b>nur auf diesem Gerät</b> gespeichert (IndexedDB im Browser) – nichts geht an einen Server. Löschen geht jederzeit.</p>
+    <ul class="plist" id="parties"></ul>
+    <p class="empty" id="empty" hidden>Noch keine Party aufgezeichnet. Spiel ein Set auf dem Master (Play) – jede Nacht erscheint danach hier.</p>
+    <div class="row"><button class="btn small" id="demo">Beispiel-Nacht erzeugen (Simulation, 60 min)</button></div>
+    <p class="err" id="lErr" role="alert"></p>
+  </section>
+  <section id="detail" hidden>
+    <div class="row"><button class="btn small" id="back">← Alle Partys</button></div>
+    <h1 id="dTitle">Party</h1>
+    <p class="dim" id="dSub"></p>
+    <p class="warn" id="dMode" hidden></p>
+    <div class="rtiles" id="dTiles"></div>
+    <h2>Soll vs. Ist</h2>
+    <canvas id="cEnergy" class="chart" aria-label="Soll- und Ist-Energie über die Nacht"></canvas>
+    <p class="legend"><i class="lg soll"></i>Soll-Kurve <i class="lg ist"></i>Crowd-Energie (Ist) <i class="lg lvl"></i>Musikstufe <i class="lg band-b"></i>Breakdown <i class="lg band-u"></i>Build-up ◆ Drop</p>
+    <h2>Beteiligung, Gleichtakt, Tänzer</h2>
+    <canvas id="cCrowd" class="chart" aria-label="Beteiligung und Gleichtakt über die Nacht"></canvas>
+    <p class="legend"><i class="lg p"></i>Beteiligung P <i class="lg s"></i>Gleichtakt S <i class="lg n"></i>zählen N (rechts skaliert)</p>
+    <h2>Top-Momente</h2>
+    <ol class="moments" id="dTop"></ol>
+    <h2>Drops</h2>
+    <div class="tw"><table id="dDrops"></table></div>
+    <h2>Breakdowns</h2>
+    <div class="tw"><table id="dBreaks"></table></div>
+    <h2>Musikalische Moves</h2>
+    <p class="dim">Regelbasiert: CEI 8 Takte vor dem Move gegen CEI in Takt 24–32 danach, abzüglich dessen, was die Soll-Kurve ohnehin erwarten lässt (1 Energiepunkt = 4,5 CEI). ±3 CEI gilt als neutral. Liegt ein Drop, Breakdown oder Build-up im Fenster, ist der Move „überlagert“ und wird nicht bewertet.</p>
+    <div class="mtop"><div><h3>Top 3</h3><ol id="dTopMoves"></ol></div><div><h3>Flop 3</h3><ol id="dFlopMoves"></ol></div></div>
+    <details><summary>Alle Moves</summary><div class="tw"><table id="dMoves"></table></div></details>
+    <h2>Story-Karte</h2>
+    <div class="cardrow">
+      <img id="cardImg" class="cardimg" alt="Story-Karte der Nacht" />
+      <div>
+        <p class="dim">Lokal erzeugtes Bild (1080 × 1920, PNG), ohne Namen. Geteilt wird nur, wenn du es willst.</p>
+        <button class="btn" id="share">Teilen</button>
+        <button class="btn small" id="dlCard">PNG speichern</button>
+      </div>
+    </div>
+    <h2>Export &amp; Löschen</h2>
+    <div class="row">
+      <button class="btn small" id="exJson">JSON exportieren</button>
+      <button class="btn small" id="exCsv">CSV exportieren (pro Takt)</button>
+      <button class="btn small danger" id="del">Diese Party löschen</button>
+    </div>
+    <p class="dim" id="dNote"></p>
+  </section>
+</main>
+<canvas id="card" hidden></canvas>
+<script type="module" src="./src/report-page.ts"></script>
+</body>
+</html>
