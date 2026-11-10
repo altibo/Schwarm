@@ -2,7 +2,7 @@ import "./style.css";
 import "./blindtest.css";
 import { LiveEngine } from "./live.ts";
 import { BLIND_TEST_SEED } from "./set.ts";
-import { PACK } from "./pack/techno.ts";
+import { HH } from "./pack/hardhouse.ts";
 import { registerSW } from "./sw-register.ts";
 import { type BlindResult, RATING_EVERY_SEC, TEST_SECONDS, toCsv, evaluateGate, isResult, minutesToBoredom, meanRating } from "./gate.ts";
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -78,7 +78,7 @@ async function start() {
     listener,
     playback,
     mode,
-    pack: mode === "schwarm" ? PACK.id : null,
+    pack: mode === "schwarm" ? HH.id : null,
     preset: mode === "schwarm" ? "1h" : null,
     seed: mode === "schwarm" ? BLIND_TEST_SEED : null,
     playlistName: mode === "playlist" ? $<HTMLInputElement>("playlist").value.trim() || "Playlist" : null,

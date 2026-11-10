@@ -1,5 +1,6 @@
 // Dev-only page for the offline render tool (tools/render.ts). Not part of the deployed app.
 import { SetRunner, summary } from "./set.ts";
+import type { Genre } from "./director.ts";
 import type { Score } from "./arranger.ts";
 import { fingerprint } from "./arranger.ts";
 import { loadLibrary } from "./audio/samples.ts";
@@ -8,8 +9,8 @@ let scores: Score[] = [];
 const PRE = 20;
 const w = window as unknown as Record<string, unknown>;
 w.schwarm = {
-  prepare(preset: string, seed: number) {
-    const run = new SetRunner({ preset, seed, crowd: "sim" });
+  prepare(preset: string, seed: number, genre?: Genre) {
+    const run = new SetRunner({ preset, seed, crowd: "sim", genre });
     scores = [];
     while (!run.finished) scores.push(run.next());
     const last = scores[scores.length - 1].plan;
@@ -17,7 +18,7 @@ w.schwarm = {
       total: last.time + 240 / last.bpm,
       bars: scores.map((s) => ({ ...summary(s), fp: fingerprint(s, "structure"), fpx: fingerprint(s, "exact") })),
       director: run.director.events,
-      kicks: scores.flatMap((s) => s.events.filter((e) => e.voice === "kick" && e.vel > 0.6).map((e) => s.plan.time + (e.step * 15) / s.plan.bpm)),
+      kicks: scores.flatMap((s) => s.events.filter((e) => (e.voice === "kick" || e.voice === "hkick") && e.vel > 0.6).map((e) => s.plan.time + (e.step * 15) / s.plan.bpm)),
     };
   },
   async renderChunk(start: number, end: number, sr: number) {

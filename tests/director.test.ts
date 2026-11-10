@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SetRunner } from "../src/set.ts";
-import { Director, BLOCK, MAX_BUILD_BLOCKS, BPM_MIN, BPM_MAX, type BarPlan } from "../src/director.ts";
+import { Director, BLOCK, MAX_BUILD_BLOCKS, GENRES, type BarPlan } from "../src/director.ts";
 import { presetById, sollAt } from "../src/curve.ts";
 import { arrange, fingerprint } from "../src/arranger.ts";
 const runAll = (preset = "1h", seed = 2026) => {
@@ -16,9 +16,11 @@ test("set length and phrase grid", () => {
   assert.ok(last.minute >= 59.5 && last.minute < 60.1);
   for (const p of plans) if (p.section === "groove") assert.ok(p.phraseBar >= 0 && p.phraseBar < 16);
 });
-test("tempo: 128–138 BPM, at most ±1 BPM per phrase, constant inside a phrase", () => {
+test("tempo: inside the genre's range (Hard House 140–150), at most ±1 BPM per phrase, constant inside a phrase", () => {
+  const [lo, hi] = GENRES[plans[0].genre].bpm;
+  assert.equal(plans[0].genre, "hardhouse");
   for (let i = 1; i < plans.length; i++) {
-    assert.ok(plans[i].bpm >= BPM_MIN && plans[i].bpm <= BPM_MAX);
+    assert.ok(plans[i].bpm >= lo && plans[i].bpm <= hi);
     const d = Math.abs(plans[i].bpm - plans[i - 1].bpm);
     assert.ok(d <= 1 + 1e-9, `bar ${i}`);
     if (d > 0) assert.equal(plans[i].phraseBar, 0, "tempo changes only on a phrase start");

@@ -3,26 +3,38 @@ import assert from "node:assert/strict";
 import { SetRunner } from "../src/set.ts";
 import { fingerprint, type Score } from "../src/arranger.ts";
 import { evaluateGate, toCsv, minutesToBoredom, type BlindResult } from "../src/gate.ts";
-const scores: Score[] = [];
-const run = new SetRunner({ preset: "1h", seed: 2026, crowd: "sim" });
-while (!run.finished) scores.push(run.next());
-test("events stay on the bar grid; breakdowns have no kick; grooves keep four on the floor", () => {
-  for (const s of scores) {
-    for (const e of s.events) assert.ok(e.step >= 0 && e.step < 16, `${e.voice} ${e.step}`);
-    const kicks = s.events.filter((e) => e.voice === "kick").map((e) => e.step);
-    if (s.plan.section === "breakdown") assert.equal(kicks.length, 0);
-    if (s.plan.section === "groove" && s.plan.fill !== "kickout") for (const k of [0, 4, 8, 12]) assert.ok(kicks.includes(k));
-  }
-});
-test("drop bar: crash + impact on the one; last pre-drop bar has a gap from step 14", () => {
-  for (const s of scores.filter((x) => x.plan.drop)) {
-    assert.ok(s.events.some((e) => e.voice === "impact" && e.step === 0));
-    assert.ok(s.events.some((e) => e.voice === "crash" && e.step === 0));
-    const prev = scores[s.plan.index - 1];
-    assert.equal(prev.auto.gapAt, 14);
-    assert.ok(prev.events.every((e) => e.step < 14));
-  }
-});
+import type { Genre } from "../src/director.ts";
+const setOf = (genre: Genre) => {
+  const out: Score[] = [];
+  const r = new SetRunner({ preset: "1h", seed: 2026, crowd: "sim", genre });
+  while (!r.finished) out.push(r.next());
+  return out;
+};
+const sets: Record<Genre, Score[]> = { hardhouse: setOf("hardhouse"), techno: setOf("techno") };
+const scores = sets.techno;
+for (const g of ["hardhouse", "techno"] as Genre[]) {
+  const all = sets[g];
+  test(`${g}: events stay on the bar grid; breakdowns have no kick; grooves keep four on the floor`, () => {
+    for (const s of all) {
+      for (const e of s.events) assert.ok(e.step >= 0 && e.step < 16, `${e.voice} ${e.step}`);
+      const kicks = s.events.filter((e) => e.voice === "kick" || e.voice === "hkick").map((e) => e.step);
+      if (s.plan.section === "breakdown") assert.equal(kicks.length, 0);
+      if (s.plan.section === "groove" && s.plan.fill !== "kickout" && !(s.plan.phraseBar === 7 && g === "hardhouse")) for (const k of [0, 4, 8, 12]) assert.ok(kicks.includes(k), `bar ${s.plan.index}`);
+    }
+  });
+  test(`${g}: drop bar: crash + impact on the one; last pre-drop bar ends in a gap or a tape stop from step 14`, () => {
+    const drops = all.filter((x) => x.plan.drop);
+    assert.ok(drops.length >= 3);
+    for (const s of drops) {
+      assert.ok(s.events.some((e) => e.voice === "impact" && e.step === 0));
+      assert.ok(s.events.some((e) => e.voice === "crash" && e.step === 0));
+      const prev = all[s.plan.index - 1];
+      assert.ok(prev.auto.gapAt === 14 || prev.auto.tape?.at === 14, `bar ${prev.plan.index}`);
+      assert.ok(prev.events.every((e) => e.step < 14));
+      assert.ok((prev.auto.stutter ?? []).length > 0, "the pre-drop bar stutters");
+    }
+  });
+}
 test("variation: many distinct bars per 10 minutes, no long exact loops", () => {
   for (let w = 0; w < 60; w += 10) {
     const win = scores.filter((s) => s.plan.minute >= w && s.plan.minute < w + 10);
@@ -38,6 +50,7 @@ test("variation: many distinct bars per 10 minutes, no long exact loops", () => 
 });
 test("hymn of the night returns in the wave", () => {
   assert.ok(scores.filter((s) => s.events.some((e) => e.layer === "lead")).length > 40);
+  assert.ok(sets.hardhouse.filter((s) => s.events.some((e) => e.layer === "hook")).length > 600);
 });
 const res = (mode: BlindResult["mode"], bored: number | null, ratings: number[], id: string): BlindResult => ({
   schema: "schwarm-blindtest/1", id, listener: id, playback: "Kopfhörer", mode, pack: null, preset: null, seed: null, playlistName: mode === "playlist" ? "P, \"1\"" : null,

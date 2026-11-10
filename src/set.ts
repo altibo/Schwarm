@@ -1,5 +1,5 @@
 // One running set: director + crowd source (simulation or manual sliders) → bar scores.
-import { Director, type BarPlan, type DirectorSnapshot } from "./director.ts";
+import { Director, DEFAULT_GENRE, type BarPlan, type DirectorSnapshot, type Genre } from "./director.ts";
 import { CrowdSim, type CrowdInput } from "./crowd.ts";
 import { arrange, type Score } from "./arranger.ts";
 import { presetById } from "./curve.ts";
@@ -13,6 +13,8 @@ export interface SetOptions {
   /** "sim": the crowd follows the music (model). "manual": sliders set the aggregate. */
   crowd: CrowdMode;
   n?: number;
+  /** Music style (default Hard House). */
+  genre?: Genre;
 }
 export class SetRunner {
   director: Director;
@@ -26,7 +28,7 @@ export class SetRunner {
   private boostBars = 0;
   private coin;
   constructor(o: SetOptions) {
-    this.director = new Director(presetById(o.preset), o.seed);
+    this.director = new Director(presetById(o.preset), o.seed, o.genre ?? DEFAULT_GENRE);
     this.sim = new CrowdSim(o.seed, o.n ?? 12);
     this.mode = o.crowd;
     this.manual.n = o.n ?? 12;
@@ -77,5 +79,8 @@ export const summary = (s: Score) => ({
   move: s.plan.move,
   anchor: s.plan.anchor,
   fatigue: Math.round(s.plan.fatigue * 100) / 100,
+  genre: s.plan.genre,
+  key: s.plan.key,
+  chapter: s.plan.chapter,
   events: s.events.length,
 });

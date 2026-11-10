@@ -12,7 +12,7 @@ import { holdButton } from "./ui/hold.ts";
 import { askMotion, onMotion } from "./ui/motion.ts";
 import { now } from "./net/clock.ts";
 import type { CrowdMode } from "./set.ts";
-import type { DirectorSnapshot } from "./director.ts";
+import { GENRES, DEFAULT_GENRE, keyName, type DirectorSnapshot, type Genre } from "./director.ts";
 import { Recorder } from "./report/recorder.ts";
 import { getParty } from "./report/store.ts";
 import { clock } from "./report/card.ts";
@@ -21,7 +21,9 @@ import { measureMic, type MicResult } from "./calib/mic.ts";
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 let presetId = "1h";
 let mode: CrowdMode = "manual";
-const engine = new LiveEngine({ preset: presetId, seed: Date.now() % 100000, crowd: mode });
+const GENRE_KEY = "schwarm.genre";
+let genre: Genre = localStorage.getItem(GENRE_KEY) === "techno" ? "techno" : DEFAULT_GENRE;
+const engine = new LiveEngine({ preset: presetId, seed: Date.now() % 100000, crowd: mode, genre });
 const hist: CurvePoint[] = [];
 let profile: PartyProfile = loadProfile();
 engine.latencyMs = profile.speakerMs;
@@ -93,7 +95,7 @@ for (const p of PRESETS) {
     recorder = null;
     clearResume();
     presetId = p.id;
-    engine.reset({ preset: presetId, seed: Date.now() % 100000, crowd: mode });
+    engine.reset({ preset: presetId, seed: Date.now() % 100000, crowd: mode, genre });
     if (party) party.presetId = presetId;
     hist.length = 0;
     readSliders();
@@ -103,6 +105,31 @@ for (const p of PRESETS) {
     $("phase").textContent = "Bereit";
   };
   presetBox.append(b);
+}
+// Music style: Hard House (default) or Techno. Switching starts a fresh set (like a preset).
+const genreBox = $("genres");
+for (const g of Object.keys(GENRES) as Genre[]) {
+  const b = document.createElement("button");
+  b.className = "btn small";
+  b.textContent = GENRES[g].label;
+  b.dataset.genre = g;
+  b.setAttribute("aria-pressed", String(g === genre));
+  b.onclick = () => {
+    if (g === genre) return;
+    void recorder?.save();
+    recorder = null;
+    clearResume();
+    genre = g;
+    localStorage.setItem(GENRE_KEY, g);
+    engine.reset({ preset: presetId, seed: Date.now() % 100000, crowd: mode, genre });
+    hist.length = 0;
+    readSliders();
+    setMode(mode);
+    for (const x of genreBox.querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
+    $("play").textContent = "▶ Play";
+    $("phase").textContent = "Bereit";
+  };
+  genreBox.append(b);
 }
 $("play").onclick = async () => {
   if (engine.running) {
@@ -136,7 +163,7 @@ engine.onBar = (s: Score) => {
   }
   $("level").textContent = String(p.level);
   $("phase").textContent = p.phaseName;
-  $("meta").textContent = `${fmt(p.bpm)} BPM · Phrase ${p.phraseIndex + 1} · Takt ${p.phraseBar + 1}/${p.section === "build" ? 8 : 16}`;
+  $("meta").textContent = `${GENRES[p.genre].label} · ${keyName(p.key)} · ${fmt(p.bpm)} BPM · Phrase ${p.phraseIndex + 1} · Takt ${p.phraseBar + 1}/${p.section === "build" ? 8 : 16}`;
   $("ready").style.width = `${Math.round(p.readiness * 100)}%`;
   $("readyTxt").textContent = p.readiness >= 1 ? "frei" : `${Math.round(p.readiness * 100)} %`;
   $("fat").style.width = `${Math.min(100, Math.round(p.fatigue * 100))}%`;
@@ -179,6 +206,8 @@ $("resumeGo").onclick = async () => {
   presetId = r.preset;
   engine.reset({ preset: presetId, seed: Number(r.dir.state.seed) || 1, crowd: r.mode });
   engine.runner.resume(r.dir);
+  genre = engine.runner.director.genre;
+  for (const x of document.querySelectorAll<HTMLElement>("#genres button")) x.setAttribute("aria-pressed", String(x.dataset.genre === genre));
   for (const x of presetBox.querySelectorAll<HTMLElement>("button")) x.setAttribute("aria-pressed", String(x.dataset.preset === presetId));
   const rec = await getParty(r.recId).catch(() => undefined);
   // Not saved yet (reload within the first bars): continue under the same id.

@@ -12,6 +12,17 @@ export const BLOCK = 8;
 export const MAX_BUILD_BLOCKS = 3;
 export const BPM_MIN = 128;
 export const BPM_MAX = 138;
+/** Style of the music engine. Hard House is the default; Techno stays selectable. */
+export type Genre = "hardhouse" | "techno";
+export const GENRES: Record<Genre, { label: string; bpm: [number, number] }> = {
+  hardhouse: { label: "Hard House", bpm: [140, 150] },
+  techno: { label: "Techno", bpm: [BPM_MIN, BPM_MAX] },
+};
+export const DEFAULT_GENRE: Genre = "hardhouse";
+/** Key centre per chapter, semitones relative to F (F, G, D, B♭, A♭, E♭). A chapter starts at
+ * every breakdown and after six groove phrases without one: modulation on section boundaries. */
+export const KEY_SHIFTS = [0, 2, -3, 5, 3, -2];
+export const CHAPTER_PHRASES = 6;
 export type Section = "groove" | "breakdown" | "build";
 export type DropType = "freigeschaltet" | "rettung" | "erzwungen";
 export type MoveType = "hats" | "bass" | "swing" | "perc" | "filter" | "stab" | "fill" | "acid";
@@ -76,11 +87,20 @@ export interface BarPlan {
   /** Type of the decided drop while a pre-drop runs (for the light command one bar ahead). */
   nextDrop: DropType | null;
   seed: number;
+  genre: Genre;
+  /** Seed of the whole night (motif of the night is derived from it). */
+  nightSeed: number;
+  /** Chapter of the night (changes at breakdowns / every few phrases) and its key shift. */
+  chapter: number;
+  chapterPhrase: number;
+  key: number;
+  /** Number of drops so far (the drop bar itself included). */
+  drops: number;
 }
 export interface DirectorEvent {
   bar: number;
   time: number;
-  kind: "breakdown" | "build" | "drop" | "move" | "move-ok" | "move-fail" | "anchor" | "level";
+  kind: "breakdown" | "build" | "drop" | "move" | "move-ok" | "move-fail" | "anchor" | "level" | "key";
   detail: string;
 }
 export interface DirectorSnapshot {
@@ -90,11 +110,17 @@ export interface DirectorSnapshot {
   state: Record<string, unknown>;
 }
 export const barSeconds = (bpm: number) => (240 / bpm);
-export const levelBpm = (level: number) => BPM_MIN + ((level - 1) * (BPM_MAX - BPM_MIN)) / 9;
+export const levelBpm = (level: number, genre: Genre = "techno") => {
+  const [lo, hi] = GENRES[genre].bpm;
+  return lo + ((level - 1) * (hi - lo)) / 9;
+};
+export const KEY_NAMES = ["F", "F♯", "G", "A♭", "A", "B♭", "H", "C", "D♭", "D", "E♭", "E"];
+export const keyName = (shift: number) => `${KEY_NAMES[((shift % 12) + 12) % 12]}-Moll`;
 
 export class Director {
   readonly preset: CurvePreset;
   readonly seed: number;
+  genre: Genre = DEFAULT_GENRE;
   private r: SRng;
   bar = 0;
   time = 0;
@@ -127,10 +153,15 @@ export class Director {
   private fill: BarPlan["fill"] = "none";
   private hymnPhrase = false;
   private preBreakLevel = 1;
+  chapter = 0;
+  private chapterPhrase = 0;
+  private drops = 0;
   events: DirectorEvent[] = [];
-  constructor(preset: CurvePreset, seed = 1) {
+  constructor(preset: CurvePreset, seed = 1, genre: Genre = DEFAULT_GENRE) {
     this.preset = preset;
     this.seed = seed;
+    this.genre = genre;
+    this.bpm = GENRES[genre].bpm[0];
     this.r = srng(hash("director", seed));
     this.nextMandatory = 15 + this.r() * 10;
     this.v = this.anchorVariation(0);
@@ -150,7 +181,8 @@ export class Director {
   }
   /** Continue exactly where a snapshot left off (same preset/seed → identical continuation). */
   static restore(snap: DirectorSnapshot, preset: CurvePreset): Director {
-    const d = new Director(preset, Number(snap.state.seed) || 1);
+    // Snapshots from before genres existed were Techno.
+    const d = new Director(preset, Number(snap.state.seed) || 1, (snap.state.genre as Genre) ?? "techno");
     Object.assign(d, JSON.parse(JSON.stringify(snap.state)));
     d.r.state = snap.rng >>> 0;
     return d;
@@ -253,6 +285,12 @@ export class Director {
       dropQueued: this.forceQueued || this.pendingType !== null,
       nextDrop: inPreDrop ? this.pendingType : null,
       seed: hash(this.seed, "bar", this.bar),
+      genre: this.genre,
+      nightSeed: this.seed,
+      chapter: this.chapter,
+      chapterPhrase: this.chapterPhrase,
+      key: KEY_SHIFTS[this.chapter % KEY_SHIFTS.length],
+      drops: this.drops,
     };
     // Advance.
     this.time += barSeconds(bpm);
@@ -270,6 +308,8 @@ export class Director {
     this.sectionBar = 0;
     this.preDropFrom = -1;
     this.lastDropBar = this.bar;
+    this.drops++;
+    this.chapterPhrase = 0;
     // Return at least to the pre-breakdown level, one step more if the curve allows.
     const cap = Math.max(1, Math.floor(soll + 0.25));
     this.level = clamp(Math.max(this.preBreakLevel, Math.min(this.preBreakLevel + 1, cap)), 1, 10);
@@ -277,6 +317,11 @@ export class Director {
     this.hymnPhrase = this.level >= 8;
     this.v = this.freshVariation(2);
     this.log("drop", `Drop (${type}) auf Stufe ${this.level}`);
+  }
+  private newChapter(why: string) {
+    this.chapter++;
+    this.chapterPhrase = 0;
+    this.log("key", `Tonart → ${keyName(KEY_SHIFTS[this.chapter % KEY_SHIFTS.length])} (${why})`);
   }
   private fillFor(phraseBar: number): BarPlan["fill"] {
     if (phraseBar === PHRASE - 1) return this.fill;
@@ -391,6 +436,7 @@ export class Director {
       this.nextMandatory = 15 + this.r() * 10;
       this.lastBreakdownMinute = minute;
       this.hymnPhrase = true;
+      this.newChapter("Breakdown");
       this.v = this.freshVariation(2);
       this.log("breakdown", mandatory ? "Pflicht-Breakdown" : tired ? "Breakdown (Müdigkeit)" : enteringPeak ? "Breakdown vor dem Peak" : "Breakdown (Abwechslung)");
       return;
@@ -405,8 +451,11 @@ export class Director {
       this.level = clamp(this.level + Math.sign(this.hyst), 1, 10);
       if (this.level !== before) this.log("level", `Stufe ${before} → ${this.level}`);
     }
+    // A long groove stretch without breakdown modulates on its phrase boundary.
+    this.chapterPhrase++;
+    if (this.chapterPhrase >= CHAPTER_PHRASES) this.newChapter("Phrase");
     // Tempo: towards the level's tempo, at most ±1 BPM per phrase.
-    const goal = levelBpm(this.level);
+    const goal = levelBpm(this.level, this.genre);
     this.bpm = Math.round((this.bpm + clamp(goal - this.bpm, -1, 1)) * 100) / 100;
     // Variation (always) + moves (exploration rules) + hymn of the night.
     const anchored = this.phraseIndex < this.anchorUntil;

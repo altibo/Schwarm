@@ -2,10 +2,14 @@
 import type { BarPlan } from "./director.ts";
 import { PACK, KEY_ROOT, chordTones, type Hit, type Chord } from "./pack/techno.ts";
 import { rng, hash, euclid, clamp, type Rng } from "./rng.ts";
+import { arrangeHH } from "./arrange-hh.ts";
+import { foldKey } from "./music/motif.ts";
 
 export type Voice =
   | "kick" | "drum" | "noisehat" | "sub" | "fm" | "saw" | "acid" | "pad" | "stab" | "lead"
-  | "riser" | "crash" | "impact" | "downlifter" | "atmos";
+  | "riser" | "crash" | "impact" | "downlifter" | "atmos"
+  // Hard House voices (synthesized, see audio/mix.ts)
+  | "hkick" | "hbass" | "donk" | "roll" | "hoover" | "reese" | "rstab" | "chop" | "pluck" | "clapx" | "revcrash" | "zap";
 export interface Ev {
   layer: string;
   voice: Voice;
@@ -26,6 +30,13 @@ export interface Ev {
   accent?: boolean;
   slideFrom?: number;
   from?: number;
+  /** Formant chop: vowel glide [from, to]. */
+  word?: [string, string];
+}
+/** Bus effect windows in 16th steps of the bar. */
+export interface FxWindow {
+  at: number;
+  len: number;
 }
 export interface Auto {
   lp: [number, number];
@@ -36,6 +47,18 @@ export interface Auto {
   duck: number;
   /** Step from which everything except reverb tails is silent until the bar ends (pre-drop gap). */
   gapAt: number;
+  /** Beat repeat: capture `slice` steps at `at` and repeat it until `at + len`. */
+  stutter?: (FxWindow & { slice: number })[];
+  /** Tape stop: the whole mix brakes to a standstill from `at` over `len`, silent to bar end. */
+  tape?: FxWindow;
+  /** Bit crusher on the whole mix (mix 0–1). */
+  crush?: FxWindow & { mix: number };
+  /** Delay feedback for this bar (delay throws); default 0.42. */
+  throwFb?: number;
+  /** Extra reverb send on the music bus (reverb wash). */
+  wash?: number;
+  /** Master trim (1 = unchanged). */
+  trim?: number;
 }
 export interface Score {
   plan: BarPlan;
@@ -65,6 +88,22 @@ export function acidLine(seed: number, mutation: number) {
 }
 
 export function arrange(plan: BarPlan): Score {
+  if (plan.genre === "hardhouse") return arrangeHH(plan);
+  return withKey(arrangeTechno(plan), plan.key);
+}
+/** Techno pack: same arranger as before, transposed to the chapter's key (modulation). */
+function withKey(s: Score, key: number): Score {
+  const k = foldKey(key);
+  if (!k) return s;
+  for (const e of s.events) {
+    if (e.voice === "kick" || e.voice === "drum" || e.voice === "noisehat") continue;
+    if (e.note !== undefined) e.note += k;
+    if (e.slideFrom !== undefined) e.slideFrom += k;
+    if (e.notes) e.notes = e.notes.map((n) => n + k);
+  }
+  return s;
+}
+function arrangeTechno(plan: BarPlan): Score {
   const lv = PACK.levels[plan.level - 1];
   const v = plan.variation;
   const r = rng(plan.seed);
@@ -158,6 +197,9 @@ export function arrange(plan: BarPlan): Score {
     if (lv.pad > 0 && pb % 4 === 0) add({ layer: "pad", voice: "pad", step: 0, len: 64, vel: 0.5 * lv.pad, notes: tones(chord, 53), rev: 0.5 });
     if (lv.atmos > 0 && pb % 8 === 0) add({ layer: "atmos", voice: "atmos", step: 0, len: 128, vel: 0.5 * lv.atmos, rev: 0.4 });
     if (plan.hymn && lv.lead > 0 && pb >= 8) hymnBar(add, pb % 2, 0.55 * lv.lead, 0.3);
+    // Arranged bus effects: delay throw on the stab every 8 bars, stutter / tape stop on fills.
+    if (v.stabOn && lv.stab > 0 && pb % 8 === 7) auto.throwFb = 0.62;
+    if (plan.fill === "big" && plan.level >= 8) auto.stutter = [{ at: 14, len: 2, slice: 0.5 }];
     // Fills
     if (plan.fill === "small") for (let s = 12; s < 16; s++) add({ layer: "fill", voice: "drum", sample: "snare", step: s, len: 1, vel: 0.35 + (s - 12) * 0.12, rev: 0.2 });
     if (plan.fill === "big") {
@@ -166,6 +208,7 @@ export function arrange(plan: BarPlan): Score {
       for (const [s, rate] of [[13, 1.2], [14, 1], [15, 0.85]] as const) add({ layer: "fill", voice: "drum", sample: "tom", step: s, len: 2, vel: 0.6, rate });
     }
     if (kickout) add({ layer: "fx", voice: "riser", step: 0, len: 16, vel: 0.5, from: 0.4 });
+    if (kickout && plan.level >= 7) auto.tape = { at: 12, len: 4 };
     // Filter automation (moves)
     const base = lv.lp;
     const f = (b: number) => {
@@ -218,6 +261,7 @@ export function arrange(plan: BarPlan): Score {
       add({ layer: "fx", voice: "riser", step: 0, len: 14, vel: 0.5, from: 0.6 });
       auto.gapAt = 14;
       auto.hp = [auto.hp[0], 900];
+      auto.stutter = [{ at: 10, len: 4, slice: 1 }];
     }
   }
   ev.sort((a, b) => a.step - b.step);

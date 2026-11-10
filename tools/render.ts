@@ -6,7 +6,8 @@ import { chromium } from "@playwright/test";
 import { openSync, writeSync, closeSync, writeFileSync } from "node:fs";
 const [preset = "1h", seedArg = "2026", outBase = "/workspace/schwarm/renders/schwarm-1h", srArg = "44100", stem = ""] = process.argv.slice(2);
 // stem "kick": render only the kick voice (used to measure beat accuracy without other sounds)
-const ALL = ["drum", "noisehat", "sub", "fm", "saw", "acid", "pad", "stab", "lead", "riser", "crash", "impact", "downlifter", "atmos", "rumble"];
+const genre = process.env.GENRE || undefined;
+const ALL = ["hbass", "donk", "roll", "hoover", "reese", "rstab", "chop", "pluck", "clapx", "revcrash", "zap", "drum", "noisehat", "sub", "fm", "saw", "acid", "pad", "stab", "lead", "riser", "crash", "impact", "downlifter", "atmos", "rumble"];
 const seed = Number(seedArg), sr = Number(srArg);
 const server = await createServer({ server: { port: 5199, strictPort: false, hmr: false, watch: null }, logLevel: "error" });
 await server.listen();
@@ -17,8 +18,12 @@ page.on("console", (m) => m.type() === "error" && console.error("page:", m.text(
 await page.goto(`${url}render.html`);
 await page.waitForFunction(() => document.body.textContent === "render ready");
 if (stem === "kick") await page.evaluate((skip) => ((window as never as { __skip: string[] }).__skip = skip), ALL);
-const plan = await page.evaluate(([p, s]) => (window as never as { schwarm: { prepare: (a: string, b: number) => unknown } }).schwarm.prepare(p as string, s as number), [preset, seed]) as { total: number; bars: unknown[] };
-writeFileSync(`${outBase}.plan.json`, JSON.stringify({ preset, seed, sampleRate: sr, ...plan }));
+// ONLY=a,b: render only these voices/layers (balance check of single elements)
+const only = (process.env.ONLY ?? "").split(",").filter(Boolean);
+const LAYERS = ["kick", "bass", "reese", "hats", "openhat", "ride", "clap", "snare", "perc", "perc2", "hook", "hook2", "stab", "chop", "pad", "atmos", "fill", "fx", "drum", "acid", "lead"];
+if (only.length) await page.evaluate((skip) => ((window as never as { __skip: string[] }).__skip = skip), [...ALL, ...LAYERS, "hkick", "kick"].filter((x) => !only.includes(x)).concat("rumble"));
+const plan = await page.evaluate(([p, s, g]) => (window as never as { schwarm: { prepare: (a: string, b: number, g?: string) => unknown } }).schwarm.prepare(p as string, s as number, (g as string) || undefined), [preset, seed, genre ?? ""]) as { total: number; bars: unknown[] };
+writeFileSync(`${outBase}.plan.json`, JSON.stringify({ preset, seed, genre: genre ?? "default", sampleRate: sr, ...plan }));
 const total = plan.total;
 const CH = 120;
 const fd = openSync(`${outBase}.wav`, "w");
